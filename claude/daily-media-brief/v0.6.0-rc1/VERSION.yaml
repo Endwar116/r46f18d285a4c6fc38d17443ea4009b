@@ -3,3 +3,7 @@ platform: "Claude"
 status: "REVIEW_CANDIDATE"
 production_ready: false
 source: "compact refactor from internal project runtime"
+contract_level_corrections:
+  - "pre-dispatch query budget guard"
+  - "per-batch candidate / excluded ledger advancement gate"
+validation_note: "corrections are present at contract level and still require real Claude runtime validation"
