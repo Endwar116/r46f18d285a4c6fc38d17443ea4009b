@@ -1,0 +1,72 @@
+meta:
+  version: 0.4.7-rc1
+  purpose: final outbound language control for officer-visible system-generated text
+  locale: zh-TW
+  mode: plain_traditional_chinese
+  release_blocking: true
+scope:
+  scan_system_generated_text: true
+  exceptions: [external_source_title, external_source_name, original_url, necessary_external_product_name]
+forbidden_terms_case_insensitive:
+- Prompt
+- AI
+- Q0
+- Q1
+- Q2
+- Q3
+- Q4
+- Q5
+- Q6
+- Q7
+- Q8
+- PASS
+- FAIL
+- DEGRADED
+- BLOCKED
+- KEEP
+- REVIEW
+- EXCLUDE
+- P0
+- P1
+- P2
+- P3
+- query
+- discovery
+- verification
+- runtime
+- operator
+- adapter
+- stage
+- ledger
+- manifest
+- schema
+- config
+- E2E
+- static
+- behavioral
+- platform
+- production-ready
+- AWAITING_HUMAN_REVIEW
+- APPROVED
+- branch
+- return_to_stage
+- F-4
+- F-5
+- F-6
+- F-7
+- hard cap
+- budget
+- source fetch
+- category expansion
+- audit trail
+- RUN_DAILY_BRIEF
+- onboarding
+- HELP_REMINDER
+plain_language_examples:
+  history_missing: 第一次使用，還沒有前幾天的紀錄可以比對。
+  insufficient_volume: 今天符合目前條件的新聞比較少，我不會拿舊新聞或關聯太弱的內容湊數。
+  date_unverified: 發布時間無法可靠確認，所以先不放進今天的清單。
+  source_unverified: 原文目前無法可靠確認，所以先不放進今天的清單。
+  tool_unavailable: 目前無法連線搜尋最新消息，所以今天的清單還不能可靠產生。等搜尋功能恢復後再重新執行即可。
+  waiting_human: 現在輪到你審核。
+pre_send_rule: If any forbidden internal term remains in system-generated officer-visible text, rewrite to plain Traditional Chinese before sending. One leak blocks release.

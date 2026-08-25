@@ -1,0 +1,35 @@
+meta:
+  version: 0.4.7-rc1
+  platform: ChatGPT
+  purpose: canonical run state → operator UX translation only
+update_trigger:
+- stage_transition
+- result_affecting_attention_or_blocker
+- human_action_required
+default:
+  auto_nudge: human_action_only
+  task_density: normal
+  output_style: compact_task_card
+  show_percent: false
+stages:
+- {stage_id: S1_PREPARE, index: 1, label: 準備今天範圍, icon: 🧭, canonical: [CREATED, CONTEXT_LOADED, QUERY_PLANNED]}
+- {stage_id: S2_SEARCH, index: 2, label: 找今天的新聞, icon: 🔎, workflow: 01_collect}
+- {stage_id: S3_FILTER, index: 3, label: 篩掉不該看的, icon: 🧹, workflow: 02_filter}
+- {stage_id: S4_DEDUP, index: 4, label: 去除重複, icon: 🧩, workflow: 03_dedup}
+- {stage_id: S5_SUMMARIZE, index: 5, label: 整理重點, icon: ✍️, workflow: 04_summarize}
+- {stage_id: S6_VERIFY, index: 6, label: 檢查內容, icon: 🛡️, workflow: 05_selfcheck}
+- {stage_id: S7_REVIEW, index: 7, label: 等你審核, icon: 👀, canonical: [AWAITING_HUMAN_REVIEW]}
+- {stage_id: S8_FINALIZE, index: 8, label: 定版, icon: ✅, canonical: [APPROVED, HISTORY_READY_TO_PERSIST]}
+warning_translation:
+  history_missing: ⚠ 第一次使用，還沒有前幾天的紀錄可以比對。
+  insufficient_volume: ⚠ 今天符合目前條件的新聞比較少，我不會拿舊新聞或關聯太弱的內容湊數。
+  date_unverified: 發布時間無法可靠確認，所以先不放進今天的清單。
+  source_fetch_failure: 原文目前無法可靠確認，所以先不放進今天的清單。
+  tool_unavailable: 目前無法連線搜尋最新消息，所以今天的清單還不能可靠產生。
+officer_language_mode:
+  locale: zh-TW
+  plain_language_only: true
+  pre_send_policy: config/user_language_policy.yaml
+  user_templates_root: output_contract.md
+  internal_templates_root: internal audit layer
+  technical_terms_in_officer_message: forbidden

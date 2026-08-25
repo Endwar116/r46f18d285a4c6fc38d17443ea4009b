@@ -1,0 +1,12 @@
+version: "0.6.0-rc1"
+platform: "ChatGPT"
+status: "PORTABILITY_REVIEW_CANDIDATE"
+production_ready: false
+source_baseline: "ChatGPT v0.4.7-rc1"
+known_baseline_findings:
+  - "discovery sub-cap exceeded in live run"
+  - "full live candidate/excluded ledger was incomplete"
+contract_level_corrections:
+  - "pre-dispatch query budget guard"
+  - "ledger persistence gate before next search batch"
+validation_note: "corrections have not yet been rerun in an independent brand-new ChatGPT conversation"
