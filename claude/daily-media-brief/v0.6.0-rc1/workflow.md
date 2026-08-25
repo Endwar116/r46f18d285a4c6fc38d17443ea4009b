@@ -12,6 +12,8 @@
 依 `runtime.yaml` 建立 T1 時間窗，週一套用 Monday rule。
 
 建立 query plan 時，P0 一定跑、P1 正常跑。
+每次送出搜尋 batch 前，先依 `runtime.yaml > query_budget_guard` 計算剩餘搜尋額度。
+proposed batch 超過 remaining slots 時先截斷，再送工具。
 P2 與 P3 只有在前段結果不足、分類空白或有直接可比較案例時才啟用。
 同一主題的查詢可去重，但不得把不同主題塞成超長 query。
 
@@ -23,6 +25,8 @@ P2 與 P3 只有在前段結果不足、分類空白或有直接可比較案例�
 ## Stage 1 · Collect
 
 每條 query 獨立搜尋，保存 query、priority、category、title、URL、search snippet、source hint 與可見時間。
+每個 batch 回傳後先完成 candidate / excluded ledger row persistence，再允許下一批搜尋。
+ledger row coverage 未完成時，停止後續 batch 並標示 evidence incomplete。
 搜尋摘要只負責召回候選，不能當最後事實來源。
 
 可能入選、日期不明、標題不足以判斷、需要挑一手來源或需要寫摘要時，必須開原文。
@@ -105,3 +109,5 @@ T2 仍不足再跑 T3。
 原文抓取失敗且無替代可靠來源時移除該則。
 核心來源互相衝突時標待查並移出 LINE draft。
 工具不可用時停止受影響階段，列出未完成事項，不宣告完成。
+搜尋 batch 超過剩餘額度時，在 dispatch 前截斷。
+ledger row coverage 未完成時，停止下一批搜尋並保留 evidence incomplete 狀態。
