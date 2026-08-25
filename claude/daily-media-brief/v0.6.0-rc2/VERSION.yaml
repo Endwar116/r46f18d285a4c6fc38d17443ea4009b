@@ -1,0 +1,25 @@
+meta:
+  version: "0.6.0-rc2"
+
+name: "KCG IT Daily Media Brief · Claude callable"
+status: "RELEASE_CANDIDATE"
+supersedes: "v0.6.0-rc1"
+
+changes_from_rc1:
+  - "Stage 0b Budget Settlement：query budget 必須在 dispatch 前結算並截斷。"
+  - "Stage 1 批次紀律：本批 ledger 寫完才能進下一批。"
+  - "Stage 1 時間錨點：query 必須帶錨點，否則搜尋依權威度回傳舊文。"
+  - "P0 query 由 20 條收至 16 條，與 budget 一致。"
+  - "digest_expansion 新增 list_page 規則，處理搜尋常回傳的分類列表頁。"
+  - "承辦審核表改白話，Q0–Q8 移至稽核軌跡層。"
+
+validation:
+  claude_runtime_e2e: "RUN_WITH_FINDINGS"
+  e2e_runs: 2
+  t1_yield_observed: [0, 0]
+  five_workday_pilot: "NOT_RUN"
+
+release_gate:
+  demo_ready: true
+  production_ready: false
+  reason: "五工作日 yield pilot 未跑，24 小時窗是否合理尚未定案。"
