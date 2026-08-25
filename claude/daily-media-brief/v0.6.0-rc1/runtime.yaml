@@ -119,12 +119,27 @@ yield_telemetry:
 failure_policy:
   search_partial_failure: "保留已取得候選，以備援 query 重試一次並記錄失敗 query。"
   source_fetch_failure: "找不到另一個可驗證來源就排除。"
-  date_unverified: "排除，禁止用 crawl time、搜尋摘要時間或標題日期替代。"
+  date_unverified: "排除，不能用 crawl time、搜尋摘要時間或標題日期替代。"
   history_missing: "允許執行，但 Q5 標 DEGRADED 並提醒首次執行缺少跨日保護。"
   insufficient_volume: "在生效時間階層內依 P0/P1/P2/P3 查詢優先序補召回，仍不足再依時間階梯擴展。任何階段都不降低 Q3/Q4。"
   llm_uncertain_relevance: "送 REVIEW，不可自動 KEEP。若 KEEP 數量已足，寧可不送出。"
   conflicting_sources: "優先一手來源。核心事實仍衝突時標待查並移出 LINE draft。"
   tool_unavailable: "停止受影響階段，列出未完成項目，不宣告完成。"
+
+query_budget_guard:
+  status: "PENDING_RUNTIME_VALIDATION"
+  discovery_max: 32
+  verification_max: 12
+  total_search_hard_cap: 44
+  pre_dispatch_rule: "每次送出搜尋 batch 前先計算 remaining slots。若 proposed batch 超過剩餘數量，先截斷再送工具。"
+  accounting_fields: [discovery_search_count, verification_search_count, source_fetch_count, total_search_calls]
+  enforcement_boundary: "純模型環境只能執行 pre-dispatch contract guard。若需要 machine-enforced hard cap，部署 wrapper 需在工具 dispatch 層再次拒絕超額呼叫。"
+
+ledger_persistence:
+  status: "PENDING_RUNTIME_VALIDATION"
+  rule: "每個搜尋 batch 回來後，先把所有 surfaced candidates 寫入 candidate / excluded ledger，再允許下一個搜尋 batch。"
+  required_fields: [batch_id, query, source, publication_evidence, disposition, plain_reason]
+  advancement_gate: "ledger row coverage 未完成時不得進 Summarize。"
 
 never_do:
   - "直接發布到 LINE。"
