@@ -1,0 +1,94 @@
+meta:
+  version: "0.6.0-rc1"
+  authority: "single topic/search/source profile"
+  purpose: "今天找什麼、為什麼找、查詢優先序與來源排序。"
+  source_note: "本 callable 版本只保留可執行需求，不攜帶內部人物與訪談來源。"
+
+principles:
+  - "先找高雄資訊處既有專案與公部門直接影響，再擴大到技術與比較案例。"
+  - "搜尋詞只負責召回候選，最終收錄由 decision_policy.yaml 決定。"
+  - "每個 query 獨立搜尋，不把不同主題串成超長 query。"
+  - "標題沒有關鍵字仍可收。正文主旨只是帶到關鍵字仍須排除。"
+
+primary_keywords:
+  verified: [資安, AI, 市民卡, 數位發展部, 智慧城市]
+  caution:
+    AI: "容易召回美股、投資與產品行銷，必須走 Q3/Q4 與雜訊規則。"
+
+expansion_vocabulary:
+  infosec:
+    status: "PENDING_CONFIRM"
+    terms: [資通安全, 資安法, 駭客攻擊, 勒索軟體, 個資外洩, 資料外洩, 零信任, 弱點掃描, 資安通報, 國家資通安全研究院]
+  smartcity:
+    status: "PENDING_CONFIRM"
+    terms: [智慧交通, 智慧路燈, 開放資料, 數位治理, 公部門數位轉型, 城市儀表板]
+  local:
+    status: "PENDING_CONFIRM"
+    terms: [高雄市政府 資訊, 高雄 智慧城市, 高雄 資安]
+
+scope:
+  infosec:
+    include: ["公部門或關鍵基礎設施資安事件。", "資安法規、政策、標準更新。", "具體漏洞、攻擊手法與防禦技術。", "國內外重大資料外洩且對公部門有可說明影響。"]
+  ai:
+    include: ["政府採用生成式 AI 的政策與案例。", "AI 治理、法規與安全要求。", "對公務部署有實質影響的 AI 技術進展。"]
+  smartcity:
+    status: "CANDIDATE_REVIEW"
+    include_domains:
+      city_ai_governance: [主權AI, 城市級AI, VLM, AI治理, 城市治理AI, 決策輔助]
+      digital_public_service: [高雄數位市民, 數位身分, 行動申辦, 單一入口, 市政支付, 數位服務]
+      city_data_infrastructure: [跨局處資料整合, API, 地理資訊共通平台, 數位孿生, 城市資料平台, 大數據]
+      resilient_city: [智慧防災, 災害管理, 水利監測, 設施異常, 城市韌性, 預警]
+      smart_mobility: [智慧交通, 交通疏運, 交通預測, MaaS, 車路協同]
+      smart_public_safety: [智慧治安, 詐騙預警, 消防救災, 智慧防溺, 影像辨識]
+      smart_industry_and_aiot: [5G AIoT, 亞灣, AI產業應用, 智慧製造, 新創驗證]
+      digital_resilience: [雲端機房, 混合雲, 資訊韌性, 備援, 資安治理]
+      international_smart_city: [智慧城市展, 國際城市交流, OASC, 城市合作, 國際獎項]
+    exclude: ["只有 AI／智慧城市字樣的企業行銷、股價或消費產品。", "無公部門、城市治理或高雄專案關聯的純國外產品發表。", "沒有政策、部署、治理或城市應用資訊的泛科技評論。"]
+
+project_watchlist:
+  direct:
+    - {id: sovereign_ai_lighthouse, name: 智慧高雄主權AI燈塔計畫, priority: P0, aliases: [智慧高雄AI燈塔計畫, 智慧高雄燈塔計畫, 高雄主權AI, 城市級主權AI, 高雄在地主權AI], concepts: [生成式AI平台, 視覺語言模型, VLM, 城市治理AI, 即時影像串流分析, 交通管理, 設施異常, 災害管理, 城市韌性, 主權AI]}
+    - {id: digital_citizen, name: 高雄數位市民, priority: P0, aliases: [高雄數位市民平台, 數位市民, 高雄數位市民卡, 市民卡], concepts: [單一市政服務平台, 行動申辦, 數位身分, 會員專屬碼, 卡好付, 高雄幣, 線上申辦, 數位服務]}
+    - {id: smart_city_program_office, name: 高雄智慧城市專案辦公室, priority: P0, aliases: [智慧城市專案辦公室, 高雄智慧城市推動, 高雄智慧城市推動委員會, 高雄智慧城市展, 高雄AI智慧城], concepts: [跨局處智慧應用, 公私協力, 國際城市交流, 5G AIoT, 數位轉型, 智慧治理]}
+    - {id: city_vlm_benchmark, name: 智慧城市治理 VLM Benchmark, priority: P1, aliases: [高雄 VLM Benchmark, 視覺語言模型評測基準, 智慧城市治理視覺語言模型], concepts: [多模態AI, 視覺語言模型, 城市治理情境, AI評測, 主權AI, 模型可靠性]}
+  cross_bureau_candidates:
+    status: "CANDIDATE_REVIEW"
+    projects: [數位孿生5D智慧城市工務管理暨決策輔助平台, 地理資訊共通平台, 智慧水利監測密網平台, AI驅動詐騙集團人頭帳戶識別與警示, 智慧沙灘AI監測系統, 高雄農來訊, 高雄植醫來幫忙, 行道樹傾倒風險監測預警服務]
+
+query_groups:
+  - {id: kcg_direct, priority: P0, queries: ["高雄 智慧高雄 燈塔計畫", "高雄 主權AI", "高雄 數位市民", "高雄 市民卡 數位服務", "高雄 智慧城市 資訊處", "高雄 城市治理 AI", "高雄 VLM 城市治理", "高雄 數位孿生 城市治理", "高雄 雲端備援 資訊系統", "高雄 單一帳號 認證 平台"]}
+  - {id: cybersecurity_public_sector, priority: P0, queries: ["政府 資安 漏洞 台灣", "公務機關 資安事件 台灣", "資通安全署 AI agent 資安", "TWCERT 漏洞 資安", "資安院 政府機關 資安", "勒索軟體 政府 機關 台灣", "資料外洩 政府 台灣", "供應鏈攻擊 政府 資安", "零信任 政府 台灣", "社交工程 政府 機關"]}
+  - {id: ai_public_governance, priority: P1, queries: ["政府 生成式AI 政策 台灣", "公部門 AI治理 台灣", "AI Agent 政府 資安", "主權AI 城市治理", "生成式AI 公務機關 指引", "政府 AI資料治理", "政府 AI 採購 治理", "政府 多模態AI 城市治理", "VLM 城市治理"]}
+  - {id: smartcity_comparator, priority: P2, queries: ["智慧城市 AI 城市治理 台灣", "數位孿生 市政府 AI", "城市儀表板 市政府 AI", "智慧交通 AI 市政府", "智慧防汛 AI 市政府", "智慧工安 AI 市政府", "政府 數位身分 城市"]}
+  - {id: broad_recall, priority: P3, queries: ["AI 台灣 新聞", "資安 台灣 新聞", "智慧城市 台灣 新聞", "數位發展部 AI"]}
+
+query_planner:
+  always_run: [P0]
+  normally_run: [P1]
+  conditional:
+    P2: "P0/P1 不足，或有與高雄既有專案可直接比較的新案例時。"
+    P3: "前面結果低於 target_min，或某分類完全空白時只作補漏。"
+  budget: {P0: 16, P1: 10, P2: 6, P3: 4, max_total: 32}
+  history_aware: ["近 3 天已高密度發布、且沒有新增事實的事件避免泛化重搜。", "一次人工刪除不自動形成永久負向規則。", "長期追蹤議題只收新增事實。"]
+  output_fields: [query, priority, category, rationale, related_project, fallback_of]
+
+source_priority:
+  rule: "白名單只影響排序與同事件選源，不是收錄門檻。"
+  tiers:
+    A_official_primary: {score: 5, examples: [高雄市政府及各局處, 數位發展部, 資通安全署, 國家資通安全研究院, TWCERT/CC, 行政院]}
+    B_professional_editorial: {score: 4, examples: [iThome, 資安專業媒體, 科技及數位治理專業媒體]}
+    C_mainstream_news: {score: 3, examples: [中央社, 主要綜合媒體科技版及地方版]}
+    D_other_editorial: {score: 2}
+    X_excluded: {score: 0, examples: [PTT, Dcard, Mobile01討論串, 股票論壇, 內容農場, 未揭露來源轉貼站]}
+  kcg_official_extensions:
+    - {name: 高雄智慧城市建設資訊, url: "https://smartcity.kcg.gov.tw/", weight: 110}
+    - {name: 高雄市政府資訊處, url: "https://dpc.kcg.gov.tw/", weight: 110}
+    - {name: 高雄市政府全球資訊網, url: "https://www.kcg.gov.tw/", weight: 100}
+
+benchmark_baselines:
+  manual:
+    cost: "約 30–60 分鐘至 1 小時／日，作為既有人工流程量級參考。"
+    volume: "約 20 則／日屬既有人工量級，仍待實際五日 yield 校正。"
+    observed_behavior: "逐則點閱、人工篩選、週一回翻歷史避免重複。"
+  google_alert: "已試用但結果仍有舊聞與雜訊。"
+  internal_crawler: "已有科內工具實驗，但即時性與穩定性仍有限制。"

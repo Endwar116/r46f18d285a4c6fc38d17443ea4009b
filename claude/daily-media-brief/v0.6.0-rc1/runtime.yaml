@@ -1,0 +1,139 @@
+meta:
+  version: "0.6.0-rc1"
+  authority: "compact runtime authority"
+  purpose: "一次日報執行的時間、數量、狀態、輸入輸出與失敗行為。"
+
+run_contract:
+  run_id_format: "KCG-BRIEF-YYYYMMDD-HHMM"
+  timezone: "Asia/Taipei"
+  intent: "RUN_DAILY_BRIEF"
+  before_human_review: "AWAITING_HUMAN_REVIEW"
+  after_human_approval: "APPROVED"
+
+required_runtime_inputs:
+  - current_time
+  - runtime.yaml
+  - topic_profile.yaml
+  - decision_policy.yaml
+  - workflow.md
+  - output_contract.md
+  - state/handover.md
+  - state/published_history.jsonl
+
+required_outputs_before_review:
+  - run_manifest
+  - tier_ladder_result
+  - yield_telemetry_row
+  - query_plan
+  - candidate_ledger
+  - excluded_ledger
+  - selected_items
+  - quality_gate_result
+  - review_sheet
+  - line_push_draft
+
+state_machine:
+  - CREATED
+  - CONTEXT_LOADED
+  - QUERY_PLANNED
+  - COLLECTED
+  - FILTERED
+  - DEDUPED
+  - SUMMARIZED
+  - VERIFIED
+  - TIER_ESCALATED
+  - AWAITING_HUMAN_REVIEW
+  - APPROVED
+  - HISTORY_READY_TO_PERSIST
+
+time_window:
+  mode: "ADAPTIVE_LADDER"
+  status: "PROVISIONAL"
+  tiers:
+    - {id: T1, label: 今日, hours: 24, status: VERIFIED}
+    - {id: T2, label: 48小時內, hours: 48, status: PROVISIONAL}
+    - {id: T3, label: 72小時內, hours: 72, status: PROVISIONAL}
+  absolute_ceiling_hours: 72
+  escalation:
+    - "先完整跑 T1。"
+    - "T1 入選數低於 target_min 時，只補搜 24–48 小時區間並標 T2。"
+    - "仍不足時，只補搜 48–72 小時區間並標 T3。"
+    - "T3 仍不足時，Q7 標 DEGRADED 並輸出實際數量。"
+    - "任何擴展都不得降低 Q3 或 Q4 門檻。"
+    - "每次擴展都必須對承辦揭露。"
+  monday_rule:
+    enabled: true
+    t1_window: "上週五 00:00 至執行當下"
+    monday_ceiling_hours: 120
+    note: "週一 T1 已涵蓋週末，後續階梯仍只補未涵蓋區間。"
+  late_news_rule:
+    enabled: true
+    rule: "時間窗終點以執行當下計算，涵蓋清晨發布內容。"
+
+volume:
+  target_min: 12
+  target_max: 20
+  hard_ceiling: 25
+  status: "PENDING_CONFIRM"
+  under_min_behavior: "先依時間階梯補搜。T3 仍不足就誠實輸出，不硬湊。"
+
+categories:
+  - {id: infosec, label: 資安, order: 1, quota_hint: "6-10"}
+  - {id: ai, label: AI與數位政策, order: 2, quota_hint: "3-6"}
+  - {id: smartcity, label: 智慧城市與市民卡, order: 3, quota_hint: "3-6"}
+  - {id: local, label: 高雄在地, order: 4, quota_hint: "0-3", status: "PENDING_CONFIRM"}
+
+summary:
+  sentences_min: 2
+  sentences_max: 3
+  language: "繁體中文"
+  preserve_original_title: true
+  status: "VERIFIED"
+
+dedup:
+  history_days: 30
+  status: "PENDING_CONFIRM"
+  event_key: "主體 + 動作 + 客體"
+
+publish_schedule:
+  draft_ready_by: "07:30"
+  group_post_window: "08:00-08:30"
+  note: "僅為作業目標。Skill 本身沒有排程能力。"
+
+publish_chain:
+  status: "VERIFIED"
+  steps:
+    - {actor: 值班同仁, action: 蒐集彙整並形成候選}
+    - {actor: 值班同仁, action: 送科內群組或既有審核流程}
+    - {actor: 科長, action: 二次篩選確認}
+    - {actor: 科長或授權同仁, action: 發布至處內輿情群組}
+
+yield_telemetry:
+  enabled: true
+  fields: [run_id, execution_time, weekday, t1_count, t2_incremental, t3_incremental, final_count, stopped_at_tier, degraded]
+  five_day_decision:
+    median_t1_ge_12: "24 小時窗可評估收斂為固定 T1。"
+    median_t1_6_to_11: "保留今日加補充的階梯呈現。"
+    median_t1_lt_6: "評估以 48 或 72 小時作基準窗。"
+
+failure_policy:
+  search_partial_failure: "保留已取得候選，以備援 query 重試一次並記錄失敗 query。"
+  source_fetch_failure: "找不到另一個可驗證來源就排除。"
+  date_unverified: "排除，禁止用 crawl time、搜尋摘要時間或標題日期替代。"
+  history_missing: "允許執行，但 Q5 標 DEGRADED 並提醒首次執行缺少跨日保護。"
+  insufficient_volume: "在生效時間階層內依 P0/P1/P2/P3 查詢優先序補召回，仍不足再依時間階梯擴展。任何階段都不降低 Q3/Q4。"
+  llm_uncertain_relevance: "送 REVIEW，不可自動 KEEP。若 KEEP 數量已足，寧可不送出。"
+  conflicting_sources: "優先一手來源。核心事實仍衝突時標待查並移出 LINE draft。"
+  tool_unavailable: "停止受影響階段，列出未完成項目，不宣告完成。"
+
+never_do:
+  - "直接發布到 LINE。"
+  - "修改正式系統資料。"
+  - "因為數量不足塞入低相關新聞。"
+  - "只依搜尋引擎 recency、crawl time、URL 或標題日期判定發布時間。"
+  - "把論壇、轉貼站或搜尋摘要當最終事實來源。"
+  - "用模型記憶取代 topic/decision contract 或 published_history。"
+  - "在人審前更新 published_history。"
+  - "擴時間時放寬 Q3/Q4。"
+  - "擴時間後隱藏 T1/T2/T3 或不回報擴展。"
+  - "把資安日報、週報等彙整容器整篇當成單一新聞。"
