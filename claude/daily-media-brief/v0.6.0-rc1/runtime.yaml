@@ -1,5 +1,6 @@
 meta:
   version: "0.6.0-rc1"
+  candidate_patch: "source-coverage-expansion-2026-08-26"
   authority: "compact runtime authority"
   purpose: "一次日報執行的時間、數量、狀態、輸入輸出與失敗行為。"
 
@@ -14,6 +15,7 @@ required_runtime_inputs:
   - current_time
   - runtime.yaml
   - topic_profile.yaml
+  - source_registry_taiwan.yaml
   - decision_policy.yaml
   - workflow.md
   - output_contract.md
@@ -22,6 +24,7 @@ required_runtime_inputs:
 
 required_outputs_before_review:
   - run_manifest
+  - source_coverage_summary
   - tier_ladder_result
   - yield_telemetry_row
   - query_plan
@@ -32,19 +35,7 @@ required_outputs_before_review:
   - review_sheet
   - line_push_draft
 
-state_machine:
-  - CREATED
-  - CONTEXT_LOADED
-  - QUERY_PLANNED
-  - COLLECTED
-  - FILTERED
-  - DEDUPED
-  - SUMMARIZED
-  - VERIFIED
-  - TIER_ESCALATED
-  - AWAITING_HUMAN_REVIEW
-  - APPROVED
-  - HISTORY_READY_TO_PERSIST
+state_machine: [CREATED, CONTEXT_LOADED, QUERY_PLANNED, COLLECTED, FILTERED, DEDUPED, SUMMARIZED, VERIFIED, SOURCE_EXPANDED, TIER_ESCALATED, AWAITING_HUMAN_REVIEW, APPROVED, HISTORY_READY_TO_PERSIST]
 
 time_window:
   mode: "ADAPTIVE_LADDER"
@@ -55,27 +46,35 @@ time_window:
     - {id: T3, label: 72小時內, hours: 72, status: PROVISIONAL}
   absolute_ceiling_hours: 72
   escalation:
-    - "先完整跑 T1。"
-    - "T1 入選數低於 target_min 時，只補搜 24–48 小時區間並標 T2。"
-    - "仍不足時，只補搜 48–72 小時區間並標 T3。"
+    - "先完整跑 T1 核心 query 與 TW100 source coverage。"
+    - "T1 CORE＋EXTENDED 低於 target_min 時，先在同一 T1 時間窗擴大來源覆蓋，不先放寬日期或事實性。"
+    - "同日來源擴張後仍不足，才補搜 24–48 小時區間並標 T2。"
+    - "仍不足時補搜 48–72 小時區間並標 T3。"
     - "T3 仍不足時，Q7 標 DEGRADED 並輸出實際數量。"
-    - "任何擴展都不得降低 Q3 或 Q4 門檻。"
-    - "每次擴展都必須對承辦揭露。"
-  monday_rule:
-    enabled: true
-    t1_window: "上週五 00:00 至執行當下"
-    monday_ceiling_hours: 120
-    note: "週一 T1 已涵蓋週末，後續階梯仍只補未涵蓋區間。"
-  late_news_rule:
-    enabled: true
-    rule: "時間窗終點以執行當下計算，涵蓋清晨發布內容。"
+    - "任何擴展都不得降低 Q1、Q3、Q5、Q6，也不得把 EXCLUDE 升級。"
+    - "每次來源擴張與時間擴展都必須對承辦揭露。"
+  monday_rule: {enabled: true, t1_window: "上週五 00:00 至執行當下", monday_ceiling_hours: 120, note: "週一 T1 已涵蓋週末，後續階梯仍只補未涵蓋區間。"}
+  late_news_rule: {enabled: true, rule: "時間窗終點以執行當下計算，涵蓋清晨發布內容。"}
 
 volume:
   target_min: 12
   target_max: 20
   hard_ceiling: 25
   status: "PENDING_CONFIRM"
-  under_min_behavior: "先依時間階梯補搜。T3 仍不足就誠實輸出，不硬湊。"
+  selection_priority: [CORE, EXTENDED]
+  under_min_behavior: "先補同日 TW100 source coverage 與 EXTENDED，再依 T2/T3 補時間。仍不足就誠實輸出，不硬湊。"
+  display_rule: "EXTENDED 在承辦審核表標示『延伸觀測』，不假裝與 CORE 相同強度。"
+
+source_coverage:
+  registry: "source_registry_taiwan.yaml"
+  total_registered_sources: 100
+  scan_all_each_run: false
+  lanes:
+    core: {classes: [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, B_RESEARCH], behavior: "依 topic tags 優先覆蓋。"}
+    editorial: {classes: [C_MAINSTREAM, C_EDITORIAL, C_BUSINESS, D_BUSINESS, D_PUBLIC_MEDIA, D_CIVIC, D_PEER_GOV], behavior: "輪替補充主流、產業、地方與同業城市。"}
+    signal: {classes: [B_COMMUNITY_PRO, C_AGGREGATOR, S_SIGNAL_ONLY], behavior: "候選不足、突發訊號或使用者指定時啟用；不能直接取代 final evidence。"}
+  minimum_lane_coverage: [core, editorial]
+  signal_activation: "CORE＋EXTENDED 低於 target_min、某分類零結果、或偵測到高影響新議題時。"
 
 categories:
   - {id: infosec, label: 資安, order: 1, quota_hint: "6-10"}
@@ -83,25 +82,11 @@ categories:
   - {id: smartcity, label: 智慧城市與市民卡, order: 3, quota_hint: "3-6"}
   - {id: local, label: 高雄在地, order: 4, quota_hint: "0-3", status: "PENDING_CONFIRM"}
 
-summary:
-  sentences_min: 2
-  sentences_max: 3
-  language: "繁體中文"
-  preserve_original_title: true
-  status: "VERIFIED"
-
-dedup:
-  history_days: 30
-  status: "PENDING_CONFIRM"
-  event_key: "主體 + 動作 + 客體"
-
-publish_schedule:
-  draft_ready_by: "07:30"
-  group_post_window: "08:00-08:30"
-  note: "僅為作業目標。Skill 本身沒有排程能力。"
-
+summary: {sentences_min: 2, sentences_max: 3, language: 繁體中文, preserve_original_title: true, status: VERIFIED}
+dedup: {history_days: 30, status: PENDING_CONFIRM, event_key: "主體 + 動作 + 客體"}
+publish_schedule: {draft_ready_by: "07:30", group_post_window: "08:00-08:30", note: "僅為作業目標。Skill 本身沒有排程能力。"}
 publish_chain:
-  status: "VERIFIED"
+  status: VERIFIED
   steps:
     - {actor: 值班同仁, action: 蒐集彙整並形成候選}
     - {actor: 值班同仁, action: 送科內群組或既有審核流程}
@@ -110,19 +95,16 @@ publish_chain:
 
 yield_telemetry:
   enabled: true
-  fields: [run_id, execution_time, weekday, t1_count, t2_incremental, t3_incremental, final_count, stopped_at_tier, degraded]
-  five_day_decision:
-    median_t1_ge_12: "24 小時窗可評估收斂為固定 T1。"
-    median_t1_6_to_11: "保留今日加補充的階梯呈現。"
-    median_t1_lt_6: "評估以 48 或 72 小時作基準窗。"
+  fields: [run_id, execution_time, weekday, core_count, extended_count, source_expansion_incremental, signal_candidates, t1_count, t2_incremental, t3_incremental, final_count, stopped_at_tier, degraded]
+  five_day_decision: {median_t1_ge_12: "24 小時窗可評估收斂為固定 T1。", median_t1_6_to_11: "保留今日加補充的階梯呈現。", median_t1_lt_6: "先檢查來源覆蓋與 Q4 誤殺，再評估以 48 或 72 小時作基準窗。"}
 
 failure_policy:
   search_partial_failure: "保留已取得候選，以備援 query 重試一次並記錄失敗 query。"
   source_fetch_failure: "找不到另一個可驗證來源就排除。"
   date_unverified: "排除，不能用 crawl time、搜尋摘要時間或標題日期替代。"
   history_missing: "允許執行，但 Q5 標 DEGRADED 並提醒首次執行缺少跨日保護。"
-  insufficient_volume: "在生效時間階層內依 P0/P1/P2/P3 查詢優先序補召回，仍不足再依時間階梯擴展。任何階段都不降低 Q3/Q4。"
-  llm_uncertain_relevance: "送 REVIEW，不可自動 KEEP。若 KEEP 數量已足，寧可不送出。"
+  insufficient_volume: "先在 T1 啟動 TW100 source expansion 與 EXTENDED selection，仍不足才依時間階梯擴展。不得降低 Q1/Q3/Q5/Q6。"
+  llm_uncertain_relevance: "若符合 EXTENDED 條件送承辦待審並標示延伸觀測；無法具體說明 actionability 則排除。"
   conflicting_sources: "優先一手來源。核心事實仍衝突時標待查並移出 LINE draft。"
   tool_unavailable: "停止受影響階段，列出未完成項目，不宣告完成。"
 
@@ -138,17 +120,18 @@ query_budget_guard:
 ledger_persistence:
   status: "PENDING_RUNTIME_VALIDATION"
   rule: "每個搜尋 batch 回來後，先把所有 surfaced candidates 寫入 candidate / excluded ledger，再允許下一個搜尋 batch。"
-  required_fields: [batch_id, query, source, publication_evidence, disposition, plain_reason]
+  required_fields: [batch_id, query, source, source_id, source_class, selection_band, publication_evidence, disposition, plain_reason]
   advancement_gate: "ledger row coverage 未完成時不得進 Summarize。"
 
 never_do:
   - "直接發布到 LINE。"
   - "修改正式系統資料。"
-  - "因為數量不足塞入低相關新聞。"
+  - "因為數量不足塞入 EXCLUDE 新聞。"
   - "只依搜尋引擎 recency、crawl time、URL 或標題日期判定發布時間。"
-  - "把論壇、轉貼站或搜尋摘要當最終事實來源。"
-  - "用模型記憶取代 topic/decision contract 或 published_history。"
+  - "把聚合器、論壇、社群或搜尋摘要直接當一般新聞 final evidence。"
+  - "因為來源是論壇或社群就在 discovery 階段自動刪除。"
+  - "用模型記憶取代 topic/source/decision contract 或 published_history。"
   - "在人審前更新 published_history。"
-  - "擴時間時放寬 Q3/Q4。"
+  - "擴時間時放寬 Q1/Q3/Q5/Q6 或把 EXCLUDE 升級。"
   - "擴時間後隱藏 T1/T2/T3 或不回報擴展。"
   - "把資安日報、週報等彙整容器整篇當成單一新聞。"
