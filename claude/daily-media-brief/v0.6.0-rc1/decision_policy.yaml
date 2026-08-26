@@ -1,22 +1,21 @@
 meta:
   version: "0.6.0-rc1"
+  candidate_patch: "source-coverage-expansion-2026-08-26"
   authority: "single decision authority"
   purpose: "一則候選新聞能否進待審清單的唯一規則來源。"
-  supersedes_runtime_duplication:
-    - "舊版 content_selection_policy 與 project_relevance_policy 的兩套 numeric score 已合併。"
-    - "Q0–Q8 是唯一 gate 名稱。"
+  source_registry: "source_registry_taiwan.yaml"
 
 quality_gates:
-  Q0_runtime: {pass_when: "時間來源、compact runtime inputs 與 history 讀取狀態皆明確。", fail_action: STOP_AND_REPORT}
+  Q0_runtime: {pass_when: "時間來源、compact runtime inputs、TW100 source registry 與 history 讀取狀態皆明確。", fail_action: STOP_AND_REPORT}
   Q1_date: {pass_when: "每則都有可驗證 publication time，且落在目前生效時間階層。", fail_action: REMOVE_ITEM}
-  Q2_source: {pass_when: "最終事實來源可驗證且不是 excluded source。", fail_action: REPLACE_SOURCE_OR_REMOVE}
-  Q3_factuality: {pass_when: "有具體可驗證的新事件、公告、政策、研究、漏洞或部署。", fail_action: REMOVE_ITEM}
-  Q4_relevance: {pass_when: "能具體說明與資訊處既有專案、政府 AI／資安責任或可比較城市能力的關係。", fail_action: REMOVE_ITEM}
+  Q2_source: {pass_when: "來源已依 TW100 registry 或等價規則分類，並明確知道它能作 final evidence、discovery aggregator 或 signal-only。signal-only 不因來源類型直接刪除，但若不是事件本身，進待審前必須換成或補上可驗證來源。", fail_action: CLASSIFY_REPLACE_CORROBORATE_OR_REMOVE}
+  Q3_factuality: {pass_when: "有具體可驗證的新事件、公告、政策、研究、漏洞、部署或具體群體訊號。", fail_action: REMOVE_ITEM}
+  Q4_relevance: {pass_when: "至少落入 CORE 或 EXTENDED selection band，且能具體說明與資訊處既有專案、政府 AI／資安責任、數位治理或可比較城市能力的關係。", fail_action: REMOVE_OR_REVIEW}
   Q5_dedup: {pass_when: "與本批及歷史沒有同事件且無新增事實的重複。", fail_action: KEEP_BEST_SOURCE_ONLY}
   Q6_summary_fidelity: {pass_when: "摘要可核實事實都能回到原文，沒有模型補值。", fail_action: REWRITE_ONCE_THEN_REMOVE}
-  Q7_volume: {pass_when: "數量達目標，或已依 T1→T2→T3 執行後誠實揭露不足。", fail_action: ESCALATE_TIER_THEN_DO_NOT_PAD}
+  Q7_volume: {pass_when: "CORE＋EXTENDED 已達目標，或已依同日來源擴張與 T1→T2→T3 完成補召回後誠實揭露不足。", fail_action: EXPAND_SOURCES_THEN_TIER_THEN_DO_NOT_PAD}
   Q8_human_review: {pass_when: "使用者明確說通過、定版或可以了。", fail_action: WAIT}
-  rule: "Q1–Q6 任一 FAIL 的單篇項目不得進 LINE draft。Q7 可 DEGRADED。Q8 是唯一完成閘門。"
+  rule: "Q1、Q3、Q5、Q6 任一 FAIL 的單篇不得進 LINE draft。Q2 signal-only 項目需完成換源／交叉驗證。Q4 允許 CORE 或 EXTENDED。Q7 可 DEGRADED。Q8 是唯一完成閘門。"
 
 date_verification:
   accepted_evidence_order: ["原文頁面明確 publication datetime。", "官方公告頁明確更新／發布日期。", "結構化 metadata，例如 datePublished。", "可信媒體頁面明確日期。"]
@@ -29,10 +28,25 @@ date_verification:
     regression_test: "tests/pipeline_cases_v0.4.jsonl::title_date_trap_2026_08_25"
 
 source_rules:
-  - "官方一手來源優先作政策、公告、漏洞與政府專案事實來源。"
-  - "來源不在白名單不等於排除，仍看作者、機構、日期、引用與可驗證性。"
-  - "論壇與社群可作線索，除非貼文本身就是事件，否則最終需換成可驗證來源。"
-  - "內容農場、SEO 改寫、無作者／無日期／無原始來源者降級或排除。"
+  registry_authority: "source_registry_taiwan.yaml"
+  principles:
+    - "來源不在 TW100 registry 不等於排除；仍可臨時分類，再依作者、機構、日期、引用與可驗證性處理。"
+    - "A/B/C/D 類來源只提高搜尋與同事件選源優先序，不保證文章內容一定通過 Q3/Q4。"
+    - "官方一手來源優先作政策、公告、漏洞與政府專案事實來源。"
+    - "聚合器只作 discovery；入選時回到原始媒體或一手來源。"
+    - "論壇與社群屬 signal lane。可用來發現正在發生的議題，但除非貼文本身就是事件，否則最終需換源或交叉驗證。"
+    - "內容農場、SEO 改寫、無作者／無日期／無原始來源者降級或排除。"
+
+source_admissibility:
+  final_evidence_classes: [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, B_RESEARCH, C_MAINSTREAM, C_EDITORIAL, C_BUSINESS, D_BUSINESS, D_PUBLIC_MEDIA, D_CIVIC, D_PEER_GOV]
+  discovery_only_classes: [C_AGGREGATOR]
+  signal_classes: [B_COMMUNITY_PRO, S_SIGNAL_ONLY]
+  signal_rules:
+    - "signal-only 來源不得因為是 PTT、Dcard、Mobile01、Threads 等就於 discovery 階段硬刪。"
+    - "若訊號是服務異常、使用者大量回報、公開產品故障等群體現象，可保留成 SIGNAL_CANDIDATE。"
+    - "SIGNAL_CANDIDATE 進一般待審稿前，需至少一個 A/B/C/D 可驗證來源，或兩個彼此獨立且能確認事件本身的公開訊號來源。"
+    - "涉及資安漏洞、個資外洩、犯罪指控、政府機關事故等高風險主張，不得只靠論壇／社群定案。"
+    - "如果貼文本身就是事件，例如官方人員公開聲明或官方帳號公告，可把貼文當原始事件來源，但仍要確認帳號身份。"
 
 noise_policy:
   hard_exclude_if_primary_topic:
@@ -45,19 +59,17 @@ noise_policy:
     election_noise:
       signals: [選舉造勢, 民調, 候選人互批, 政黨攻防, 罷免攻防]
       exception: "已生效政策、正式制度或直接影響資訊處業務時不因政治人物出現排除。"
-    excluded_sources:
-      domains: [ptt.cc, dcard.tw, mobile01.com]
-      patterns: [匿名轉貼且無原始來源, 農場式改寫, 只有社群截圖沒有可驗證事件]
+    excluded_patterns: [匿名轉貼且無原始來源且無法交叉驗證, 農場式改寫, 只有截圖沒有可驗證事件, 純 SEO 拼貼]
   soft_penalties:
     vendor_marketing: {score: -4, signals: [宣布推出, 隆重推出, 助企業加速轉型, 一站式解決方案, 市場領先]}
     generic_event: {score: -2, examples: [沒有新專案或政策的活動花絮, 無實質能力資訊的頒獎名單]}
     peer_city: {score: -1, note: "與高雄既有能力可比較時仍可保留。"}
-  never_exclude_on_keyword_alone: [NVIDIA, OpenAI, Microsoft, Google, AWS, 台積電, 晶片, 雲端, AI Agent, 數位孿生, 智慧城市, 資安, AI, 政治人物姓名]
+  never_exclude_on_keyword_alone: [NVIDIA, OpenAI, Microsoft, Google, AWS, 台積電, 晶片, 雲端, AI Agent, 數位孿生, 智慧城市, 資安, AI, 政治人物姓名, PTT, Dcard, Mobile01, Threads]
 
 semantic_test:
   questions:
     S1_topic: "這篇文章真正主旨是什麼。不可只抄標題。"
-    S2_relation: "它影響資訊處哪個既有專案、能力、資安責任或決策。"
+    S2_relation: "它影響資訊處哪個既有專案、能力、資安責任、數位治理或可比較城市能力。"
     S3_actionability: "資訊處同仁是否會因此需要知道、比較、留意、調整或追蹤。"
     S4_specificity: "是否有具體新事實。泛稱 AI 很重要不算。"
     S5_noise: "主要目的是否為投資、消費產品、遊戲、選舉攻防、業配或企業自我宣傳。"
@@ -72,15 +84,32 @@ relevance_score:
   major_cyber_incident_or_vulnerability_relevant_to_public_sector: 5
   peer_city_same_capability_comparator: 3
   major_ai_technology_change_with_clear_government_deployment_impact: 3
+  useful_digital_governance_or_public_service_comparator: 3
+  credible_emerging_signal_requiring_followup: 3
   generic_ai_or_smartcity: 0
   finance_investment_primary: -6
   election_party_conflict_primary: -6
   pure_consumer_product: -5
   pure_vendor_marketing: -4
-  forum_opinion: -6
-  thresholds: {KEEP: 5, REVIEW: 3, EXCLUDE_MAX: 2}
-  explanation: "KEEP 必須具體完成：這則新聞與資訊處的 ____ 有直接關係，因為 ____。只能說與 AI／資安／智慧城市有關視為 Q4 FAIL。"
-  note: "舊 project_relevance_policy 的第二套 numeric scale 已移除，避免同一候選出現兩個分數權威。"
+  forum_opinion_only: -6
+  thresholds: {CORE_MIN: 5, EXTENDED_MIN: 3, EXCLUDE_MAX: 2}
+  explanation: "CORE 是直接業務相關。EXTENDED 是具有具體公部門比較、技術變化或可追蹤訊號，且 S3 actionability 必須成立。只能說與 AI／資安／智慧城市有關仍視為 Q4 FAIL。"
+
+selection_bands:
+  CORE:
+    score: ">=5"
+    label: "核心輿情"
+    use: "優先進承辦待審清單。"
+  EXTENDED:
+    score: "3-4"
+    label: "延伸觀測"
+    require_all: ["Q1 PASS", "Q2 admissible or corroborated", "Q3 PASS", "S3 actionability PASS", "不是純評論／純業配／純投資／純消費內容"]
+    use: "可進承辦待審清單。當 CORE 不足 target_min、某分類空白，或內容具有明確比較／前瞻價值時使用。必須標示延伸觀測。"
+  EXCLUDE:
+    score: "<=2"
+    use: "排除並寫理由。"
+  volume_fill_order: [CORE, EXTENDED, SOURCE_EXPANSION, T2, T3]
+  rule: "數量不足時先增加同日來源覆蓋與 EXTENDED 候選，不先降低日期、事實性或去重要求。"
 
 dedup_policy:
   in_batch_priority: ["官方一手來源。", "內容最完整、資訊量最大。", "來源層級較高。", "發布時間較早的首發。"]
@@ -106,7 +135,7 @@ digest_expansion:
   pending_confirm: "需由實際使用者確認既有流程平常是貼整篇彙整，還是從彙整內挑個別事件。"
 
 summary_fidelity:
-  required_fields: [原標題, 來源, 發布時間, 原文連結, 2到3句繁體中文摘要, 分類, 內部相關性理由]
+  required_fields: [原標題, 來源, 來源類別, selection_band, 發布時間, 原文連結, 2到3句繁體中文摘要, 分類, 內部相關性理由]
   answer_questions: ["發生了什麼。", "涉及誰與規模。", "若原文支持，對公部門有什麼直接意涵。"]
   forbidden: ["加入原文沒有的資訊。", "用值得關注、引發討論等空話填字數。", "複製原文長段落。", "替新聞下政策建議或評論。"]
   uncertain: "標待查，不能自行補數字或日期。"
