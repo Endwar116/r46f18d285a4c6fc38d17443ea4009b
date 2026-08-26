@@ -1,0 +1,136 @@
+meta:
+  version: "0.6.0-rc1"
+  registry_id: "TW100-COVERAGE-2026-08"
+  purpose: "台灣資訊、新聞、研究、官方與社群來源的系統化召回池。"
+  ranking_claim: false
+  note: "此為 100-source coverage registry，不宣稱流量或可信度排名。來源等級只決定搜尋角色與證據用途，不直接決定議題是否重要。"
+
+classes:
+  A_OFFICIAL: {weight: 5, role: "primary_evidence", final_evidence: true}
+  A_INSTITUTION: {weight: 5, role: "primary_or_research_evidence", final_evidence: true}
+  B_PROFESSIONAL: {weight: 4, role: "professional_editorial", final_evidence: true}
+  B_RESEARCH: {weight: 4, role: "research_analysis", final_evidence: true}
+  B_COMMUNITY_PRO: {weight: 3, role: "professional_signal", final_evidence: false}
+  C_MAINSTREAM: {weight: 3, role: "mainstream_editorial", final_evidence: true}
+  C_EDITORIAL: {weight: 3, role: "editorial_analysis", final_evidence: true}
+  C_AGGREGATOR: {weight: 2, role: "discovery_aggregator", final_evidence: false}
+  C_BUSINESS: {weight: 3, role: "business_editorial", final_evidence: true}
+  D_BUSINESS: {weight: 2, role: "business_signal", final_evidence: true}
+  D_PUBLIC_MEDIA: {weight: 3, role: "public_media", final_evidence: true}
+  D_CIVIC: {weight: 2, role: "civic_editorial", final_evidence: true}
+  D_PEER_GOV: {weight: 4, role: "peer_city_primary", final_evidence: true}
+  S_SIGNAL_ONLY: {weight: 1, role: "signal_only", final_evidence: false}
+
+sources:
+  - {id: TW001, name: 高雄市政府全球資訊網, url: "https://www.kcg.gov.tw/", class: A_OFFICIAL, topics: [local, government]}
+  - {id: TW002, name: 高雄市政府資訊處, url: "https://dpc.kcg.gov.tw/", class: A_OFFICIAL, topics: [local, government, ai, cybersecurity, smartcity]}
+  - {id: TW003, name: 高雄智慧城市, url: "https://smartcity.kcg.gov.tw/", class: A_OFFICIAL, topics: [local, smartcity, ai]}
+  - {id: TW004, name: 數位發展部, url: "https://moda.gov.tw/", class: A_OFFICIAL, topics: [government, ai, digital_governance]}
+  - {id: TW005, name: 數位發展部資通安全署, url: "https://moda.gov.tw/ACS/", class: A_OFFICIAL, topics: [government, cybersecurity]}
+  - {id: TW006, name: 數位發展部數位產業署, url: "https://moda.gov.tw/ADI/", class: A_OFFICIAL, topics: [government, ai, digital_industry, smartcity]}
+  - {id: TW007, name: 國家資通安全研究院, url: "https://www.nics.nat.gov.tw/", class: A_OFFICIAL, topics: [cybersecurity, research]}
+  - {id: TW008, name: TWCERT/CC, url: "https://www.twcert.org.tw/", class: A_OFFICIAL, topics: [cybersecurity, vulnerability]}
+  - {id: TW009, name: 行政院, url: "https://www.ey.gov.tw/", class: A_OFFICIAL, topics: [government, policy]}
+  - {id: TW010, name: 國家發展委員會, url: "https://www.ndc.gov.tw/", class: A_OFFICIAL, topics: [government, digital_governance]}
+  - {id: TW011, name: 政府資料開放平臺, url: "https://data.gov.tw/", class: A_OFFICIAL, topics: [open_data, government]}
+  - {id: TW012, name: 行政院公共工程委員會, url: "https://www.pcc.gov.tw/", class: A_OFFICIAL, topics: [procurement, government]}
+  - {id: TW013, name: 國家科學及技術委員會, url: "https://www.nstc.gov.tw/", class: A_OFFICIAL, topics: [science, ai, policy]}
+  - {id: TW014, name: 經濟部, url: "https://www.moea.gov.tw/", class: A_OFFICIAL, topics: [industry, technology, policy]}
+  - {id: TW015, name: 國家通訊傳播委員會, url: "https://www.ncc.gov.tw/", class: A_OFFICIAL, topics: [telecom, policy, cybersecurity]}
+  - {id: TW016, name: 全國法規資料庫, url: "https://law.moj.gov.tw/", class: A_OFFICIAL, topics: [law, policy]}
+  - {id: TW017, name: 公共政策網路參與平臺, url: "https://join.gov.tw/", class: A_OFFICIAL, topics: [civic, policy]}
+  - {id: TW018, name: 資訊工業策進會, url: "https://www.iii.org.tw/", class: A_INSTITUTION, topics: [ai, digital_industry, research]}
+  - {id: TW019, name: 工業技術研究院, url: "https://www.itri.org.tw/", class: A_INSTITUTION, topics: [ai, industry, research]}
+  - {id: TW020, name: 台灣網路資訊中心 TWNIC, url: "https://www.twnic.tw/", class: A_INSTITUTION, topics: [internet, cybersecurity, digital_governance]}
+  - {id: TW021, name: iThome, url: "https://www.ithome.com.tw/", class: B_PROFESSIONAL, topics: [it, cybersecurity, ai, cloud]}
+  - {id: TW022, name: TechNews 科技新報, url: "https://technews.tw/", class: B_PROFESSIONAL, topics: [technology, ai, semiconductor]}
+  - {id: TW023, name: INSIDE, url: "https://www.inside.com.tw/", class: B_PROFESSIONAL, topics: [ai, internet, startup]}
+  - {id: TW024, name: 數位時代, url: "https://www.bnext.com.tw/", class: B_PROFESSIONAL, topics: [ai, digital_transformation, startup]}
+  - {id: TW025, name: TechOrange 科技報橘, url: "https://techorange.com/", class: B_PROFESSIONAL, topics: [ai, technology, digital_transformation]}
+  - {id: TW026, name: DIGITIMES, url: "https://www.digitimes.com.tw/", class: B_PROFESSIONAL, topics: [ai, semiconductor, industry, cloud]}
+  - {id: TW027, name: CIO Taiwan, url: "https://www.cio.com.tw/", class: B_PROFESSIONAL, topics: [cio, governance, it, ai]}
+  - {id: TW028, name: T客邦, url: "https://www.techbang.com/", class: B_PROFESSIONAL, topics: [technology, consumer_it]}
+  - {id: TW029, name: Cool3c, url: "https://www.cool3c.com/", class: B_PROFESSIONAL, topics: [technology, ai, devices]}
+  - {id: TW030, name: 電腦王阿達, url: "https://www.kocpc.com.tw/", class: B_PROFESSIONAL, topics: [technology, ai, devices]}
+  - {id: TW031, name: XFastest, url: "https://www.xfastest.com/", class: B_PROFESSIONAL, topics: [hardware, technology, ai]}
+  - {id: TW032, name: TechNice 科技島, url: "https://www.technice.com.tw/", class: B_PROFESSIONAL, topics: [technology, ai, career]}
+  - {id: TW033, name: 資安人科技網, url: "https://www.informationsecurity.com.tw/", class: B_PROFESSIONAL, topics: [cybersecurity, governance]}
+  - {id: TW034, name: 網管人, url: "https://www.netadmin.com.tw/", class: B_PROFESSIONAL, topics: [cybersecurity, network, enterprise_it]}
+  - {id: TW035, name: CTIMES, url: "https://www.ctimes.com.tw/", class: B_PROFESSIONAL, topics: [technology, semiconductor, industry]}
+  - {id: TW036, name: EE Times Taiwan 電子工程專輯, url: "https://www.eettaiwan.com/", class: B_PROFESSIONAL, topics: [electronics, ai, semiconductor]}
+  - {id: TW037, name: MIC 產業情報研究所, url: "https://mic.iii.org.tw/", class: B_RESEARCH, topics: [industry, ai, digital_economy]}
+  - {id: TW038, name: 科技政策研究與資訊中心 STPI, url: "https://stpi.niar.org.tw/", class: B_RESEARCH, topics: [science_policy, research, technology]}
+  - {id: TW039, name: ITIS 智網, url: "https://www.itis.org.tw/", class: B_RESEARCH, topics: [industry, technology, research]}
+  - {id: TW040, name: iT邦幫忙, url: "https://ithelp.ithome.com.tw/", class: B_COMMUNITY_PRO, topics: [developer, it, ai, cybersecurity]}
+  - {id: TW041, name: 中央社 CNA, url: "https://www.cna.com.tw/", class: C_MAINSTREAM, topics: [general, policy, technology]}
+  - {id: TW042, name: 聯合新聞網, url: "https://udn.com/", class: C_MAINSTREAM, topics: [general, local, technology]}
+  - {id: TW043, name: 自由時報電子報, url: "https://www.ltn.com.tw/", class: C_MAINSTREAM, topics: [general, local, technology]}
+  - {id: TW044, name: ETtoday新聞雲, url: "https://www.ettoday.net/", class: C_MAINSTREAM, topics: [general, technology]}
+  - {id: TW045, name: 中時新聞網, url: "https://www.chinatimes.com/", class: C_MAINSTREAM, topics: [general, policy, technology]}
+  - {id: TW046, name: TVBS新聞網, url: "https://news.tvbs.com.tw/", class: C_MAINSTREAM, topics: [general, local]}
+  - {id: TW047, name: 三立新聞網, url: "https://www.setn.com/", class: C_MAINSTREAM, topics: [general, local]}
+  - {id: TW048, name: 東森新聞, url: "https://news.ebc.net.tw/", class: C_MAINSTREAM, topics: [general, local]}
+  - {id: TW049, name: 民視新聞網, url: "https://www.ftvnews.com.tw/", class: C_MAINSTREAM, topics: [general, local]}
+  - {id: TW050, name: 台視新聞網, url: "https://news.ttv.com.tw/", class: C_MAINSTREAM, topics: [general, local]}
+  - {id: TW051, name: 華視新聞網, url: "https://news.cts.com.tw/", class: C_MAINSTREAM, topics: [general, local]}
+  - {id: TW052, name: 公視新聞網, url: "https://news.pts.org.tw/", class: C_MAINSTREAM, topics: [general, public_affairs]}
+  - {id: TW053, name: NOWnews 今日新聞, url: "https://www.nownews.com/", class: C_MAINSTREAM, topics: [general, technology]}
+  - {id: TW054, name: Newtalk 新頭殼, url: "https://newtalk.tw/", class: C_MAINSTREAM, topics: [general, policy]}
+  - {id: TW055, name: 風傳媒, url: "https://www.storm.mg/", class: C_MAINSTREAM, topics: [general, policy, technology]}
+  - {id: TW056, name: 鏡週刊, url: "https://www.mirrormedia.mg/", class: C_MAINSTREAM, topics: [general, investigative]}
+  - {id: TW057, name: CTWANT, url: "https://www.ctwant.com/", class: C_MAINSTREAM, topics: [general]}
+  - {id: TW058, name: 上報, url: "https://www.upmedia.mg/", class: C_MAINSTREAM, topics: [general, policy]}
+  - {id: TW059, name: 信傳媒, url: "https://www.cmmedia.com.tw/", class: C_MAINSTREAM, topics: [general, policy]}
+  - {id: TW060, name: The News Lens 關鍵評論網, url: "https://www.thenewslens.com/", class: C_EDITORIAL, topics: [general, technology, policy]}
+  - {id: TW061, name: 報導者, url: "https://www.twreporter.org/", class: C_EDITORIAL, topics: [investigative, public_affairs]}
+  - {id: TW062, name: Yahoo奇摩新聞, url: "https://tw.news.yahoo.com/", class: C_AGGREGATOR, topics: [general]}
+  - {id: TW063, name: LINE TODAY Taiwan, url: "https://today.line.me/tw/v2/tab", class: C_AGGREGATOR, topics: [general]}
+  - {id: TW064, name: Taiwan News, url: "https://www.taiwannews.com.tw/", class: C_MAINSTREAM, topics: [english, general, technology]}
+  - {id: TW065, name: Taipei Times, url: "https://www.taipeitimes.com/", class: C_MAINSTREAM, topics: [english, general, policy]}
+  - {id: TW066, name: Focus Taiwan, url: "https://focustaiwan.tw/", class: C_MAINSTREAM, topics: [english, policy, technology]}
+  - {id: TW067, name: TaiwanPlus, url: "https://www.taiwanplus.com/", class: C_MAINSTREAM, topics: [english, general]}
+  - {id: TW068, name: 商業周刊, url: "https://www.businessweekly.com.tw/", class: C_BUSINESS, topics: [business, technology, ai]}
+  - {id: TW069, name: 天下雜誌, url: "https://www.cw.com.tw/", class: C_BUSINESS, topics: [business, policy, technology]}
+  - {id: TW070, name: 遠見雜誌, url: "https://www.gvm.com.tw/", class: C_BUSINESS, topics: [business, policy, smartcity]}
+  - {id: TW071, name: 今周刊, url: "https://www.businesstoday.com.tw/", class: D_BUSINESS, topics: [business, technology]}
+  - {id: TW072, name: 財訊, url: "https://www.wealth.com.tw/", class: D_BUSINESS, topics: [business, technology]}
+  - {id: TW073, name: 經濟日報, url: "https://money.udn.com/", class: D_BUSINESS, topics: [business, technology, industry]}
+  - {id: TW074, name: 工商時報, url: "https://ctee.com.tw/", class: D_BUSINESS, topics: [business, technology, industry]}
+  - {id: TW075, name: MoneyDJ 理財網, url: "https://www.moneydj.com/", class: D_BUSINESS, topics: [business, technology]}
+  - {id: TW076, name: 鉅亨網, url: "https://anue.com/", class: D_BUSINESS, topics: [business, technology]}
+  - {id: TW077, name: 非凡新聞, url: "https://news.ustv.com.tw/", class: D_BUSINESS, topics: [business, technology]}
+  - {id: TW078, name: 中央廣播電臺 RTI, url: "https://www.rti.org.tw/", class: D_PUBLIC_MEDIA, topics: [general, policy]}
+  - {id: TW079, name: PeoPo 公民新聞, url: "https://www.peopo.org/", class: D_CIVIC, topics: [civic, local]}
+  - {id: TW080, name: 上下游 News&Market, url: "https://www.newsmarket.com.tw/", class: D_CIVIC, topics: [civic, policy, environment]}
+  - {id: TW081, name: 環境資訊中心, url: "https://e-info.org.tw/", class: D_CIVIC, topics: [environment, policy, civic]}
+  - {id: TW082, name: 公民行動影音紀錄資料庫, url: "https://www.civilmedia.tw/", class: D_CIVIC, topics: [civic, public_affairs]}
+  - {id: TW083, name: 臺北市政府資訊局, url: "https://doit.gov.taipei/", class: D_PEER_GOV, topics: [smartcity, government, ai]}
+  - {id: TW084, name: 新北市政府, url: "https://www.ntpc.gov.tw/", class: D_PEER_GOV, topics: [smartcity, government, digital_governance]}
+  - {id: TW085, name: 臺中市政府數位發展局, url: "https://da.taichung.gov.tw/", class: D_PEER_GOV, topics: [smartcity, government, digital_governance]}
+  - {id: TW086, name: 臺南市政府智慧發展中心, url: "https://web.tainan.gov.tw/smart/", class: D_PEER_GOV, topics: [smartcity, government, digital_governance]}
+  - {id: TW087, name: 桃園市政府, url: "https://www.tycg.gov.tw/", class: D_PEER_GOV, topics: [smartcity, government, digital_governance]}
+  - {id: TW088, name: 新竹市政府, url: "https://www.hccg.gov.tw/", class: D_PEER_GOV, topics: [smartcity, government, technology]}
+  - {id: TW089, name: 基隆市政府, url: "https://www.klcg.gov.tw/", class: D_PEER_GOV, topics: [smartcity, government]}
+  - {id: TW090, name: PTT, url: "https://www.ptt.cc/", class: S_SIGNAL_ONLY, topics: [forum, community]}
+  - {id: TW091, name: Dcard, url: "https://www.dcard.tw/", class: S_SIGNAL_ONLY, topics: [forum, community]}
+  - {id: TW092, name: Mobile01, url: "https://www.mobile01.com/", class: S_SIGNAL_ONLY, topics: [forum, technology, community]}
+  - {id: TW093, name: 巴哈姆特電玩資訊站, url: "https://www.gamer.com.tw/", class: S_SIGNAL_ONLY, topics: [forum, technology, community]}
+  - {id: TW094, name: Threads, url: "https://www.threads.com/", class: S_SIGNAL_ONLY, topics: [social, community]}
+  - {id: TW095, name: Facebook 公開貼文, url: "https://www.facebook.com/", class: S_SIGNAL_ONLY, topics: [social, community]}
+  - {id: TW096, name: YouTube 公開內容, url: "https://www.youtube.com/", class: S_SIGNAL_ONLY, topics: [video, social]}
+  - {id: TW097, name: Reddit Taiwan, url: "https://www.reddit.com/r/taiwan/", class: S_SIGNAL_ONLY, topics: [forum, community, english]}
+  - {id: TW098, name: Plurk 噗浪, url: "https://www.plurk.com/", class: S_SIGNAL_ONLY, topics: [social, community]}
+  - {id: TW099, name: Vocus 方格子, url: "https://vocus.cc/", class: S_SIGNAL_ONLY, topics: [blog, community]}
+  - {id: TW100, name: PIXNET 痞客邦, url: "https://www.pixnet.net/", class: S_SIGNAL_ONLY, topics: [blog, community]}
+
+scan_strategy:
+  objective: "增加同日有效候選的召回率，不把 100 個來源逐一硬查。"
+  daily_core_classes: [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, B_RESEARCH]
+  rotating_classes: [C_MAINSTREAM, C_EDITORIAL, C_BUSINESS, D_BUSINESS, D_PUBLIC_MEDIA, D_CIVIC, D_PEER_GOV]
+  signal_classes: [B_COMMUNITY_PRO, C_AGGREGATOR, S_SIGNAL_ONLY]
+  rules:
+    - "先依 topic tags 選來源，再產生 query。"
+    - "每次 run 至少覆蓋官方/專業、主流/商業、地方/同業城市三種來源帶。"
+    - "論壇、社群、聚合器只作 signal lane；除非貼文本身就是事件，否則不可單獨作最終事實來源。"
+    - "若 signal lane 出現高頻同事件，回到 A/B/C/D 可驗證來源找原文或交叉證據。"
+    - "同一事件若已有高階來源，不因來源池擴大而重複增加則數。"
