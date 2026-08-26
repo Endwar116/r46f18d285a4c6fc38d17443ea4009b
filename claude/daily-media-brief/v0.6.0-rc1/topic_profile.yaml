@@ -1,14 +1,18 @@
 meta:
   version: "0.6.0-rc1"
+  candidate_patch: "source-coverage-expansion-2026-08-26"
   authority: "single topic/search/source profile"
-  purpose: "今天找什麼、為什麼找、查詢優先序與來源排序。"
+  purpose: "今天找什麼、為什麼找、查詢優先序與來源覆蓋。"
+  source_registry: "source_registry_taiwan.yaml"
   source_note: "本 callable 版本只保留可執行需求，不攜帶內部人物與訪談來源。"
 
 principles:
-  - "先找高雄資訊處既有專案與公部門直接影響，再擴大到技術與比較案例。"
-  - "搜尋詞只負責召回候選，最終收錄由 decision_policy.yaml 決定。"
+  - "先找高雄資訊處既有專案與公部門直接影響，再擴大到技術、主流媒體、產業、地方、同業城市與社群訊號。"
+  - "搜尋詞與來源 registry 只負責召回候選，最終收錄由 decision_policy.yaml 決定。"
+  - "不逐一硬查 100 個來源。依 topic tags、來源類別與 rotation 選出本次 active source set。"
   - "每個 query 獨立搜尋，不把不同主題串成超長 query。"
   - "標題沒有關鍵字仍可收。正文主旨只是帶到關鍵字仍須排除。"
+  - "論壇、社群、聚合器是 signal lane，不是預設 final evidence。"
 
 primary_keywords:
   verified: [資安, AI, 市民卡, 數位發展部, 智慧城市]
@@ -18,19 +22,22 @@ primary_keywords:
 expansion_vocabulary:
   infosec:
     status: "PENDING_CONFIRM"
-    terms: [資通安全, 資安法, 駭客攻擊, 勒索軟體, 個資外洩, 資料外洩, 零信任, 弱點掃描, 資安通報, 國家資通安全研究院]
+    terms: [資通安全, 資安法, 駭客攻擊, 勒索軟體, 個資外洩, 資料外洩, 零信任, 弱點掃描, 資安通報, 國家資通安全研究院, 供應鏈攻擊, SBOM, EDR, SOC, CVE]
+  ai:
+    status: "CANDIDATE_REVIEW"
+    terms: [生成式AI, AI Agent, Agentic AI, 多模態AI, VLM, AI治理, AI採購, AI安全, AI資料治理, 主權AI, AI基礎設施]
   smartcity:
-    status: "PENDING_CONFIRM"
-    terms: [智慧交通, 智慧路燈, 開放資料, 數位治理, 公部門數位轉型, 城市儀表板]
+    status: "CANDIDATE_REVIEW"
+    terms: [智慧交通, 智慧路燈, 開放資料, 數位治理, 公部門數位轉型, 城市儀表板, 數位孿生, 智慧防災, 智慧治安, 城市韌性]
   local:
     status: "PENDING_CONFIRM"
-    terms: [高雄市政府 資訊, 高雄 智慧城市, 高雄 資安]
+    terms: [高雄市政府 資訊, 高雄 智慧城市, 高雄 資安, 高雄 AI, 高雄 數位市民, 亞灣 AIoT]
 
 scope:
   infosec:
-    include: ["公部門或關鍵基礎設施資安事件。", "資安法規、政策、標準更新。", "具體漏洞、攻擊手法與防禦技術。", "國內外重大資料外洩且對公部門有可說明影響。"]
+    include: ["公部門或關鍵基礎設施資安事件。", "資安法規、政策、標準更新。", "具體漏洞、攻擊手法與防禦技術。", "國內外重大資料外洩且對公部門有可說明影響。", "具體且可信的資安社群早期訊號，供後續驗證。"]
   ai:
-    include: ["政府採用生成式 AI 的政策與案例。", "AI 治理、法規與安全要求。", "對公務部署有實質影響的 AI 技術進展。"]
+    include: ["政府採用生成式 AI 的政策與案例。", "AI 治理、法規與安全要求。", "對公務部署有實質影響的 AI 技術進展。", "公部門可比較的資料治理、Agent、模型評測與基礎設施案例。"]
   smartcity:
     status: "CANDIDATE_REVIEW"
     include_domains:
@@ -66,20 +73,29 @@ query_planner:
   always_run: [P0]
   normally_run: [P1]
   conditional:
-    P2: "P0/P1 不足，或有與高雄既有專案可直接比較的新案例時。"
-    P3: "前面結果低於 target_min，或某分類完全空白時只作補漏。"
+    P2: "P0/P1 不足、某分類空白，或有與高雄既有專案可直接比較的新案例時。"
+    P3: "TW100 source coverage expansion 後仍低於 target_min 時只作補漏。"
   budget: {P0: 16, P1: 10, P2: 6, P3: 4, max_total: 32}
-  history_aware: ["近 3 天已高密度發布、且沒有新增事實的事件避免泛化重搜。", "一次人工刪除不自動形成永久負向規則。", "長期追蹤議題只收新增事實。"]
-  output_fields: [query, priority, category, rationale, related_project, fallback_of]
+  source_aware_planning:
+    registry: "source_registry_taiwan.yaml"
+    active_source_set: "依本次 topic tags 從 100-source registry 選來源，不逐站全掃。"
+    core_lane: "A_OFFICIAL/A_INSTITUTION/B_PROFESSIONAL/B_RESEARCH 優先。"
+    editorial_lane: "C/D 類以主題相關性與近期未覆蓋程度輪替。"
+    signal_lane: "論壇、社群、聚合器在候選不足、突發訊號或使用者指定時啟用。"
+    tool_strategy: "工具支援 domains filter 時以多來源 domain batch 搜尋。若不支援，僅對優先來源使用 site: 查詢，不得 100 站逐站硬查。"
+    coverage_floor: "每次 run 至少覆蓋官方/專業、主流/產業、地方/同業城市三種來源帶。"
+  history_aware: ["近 3 天已高密度發布、且沒有新增事實的事件避免泛化重搜。", "一次人工刪除不自動形成永久負向規則。", "長期追蹤議題只收新增事實。", "source rotation 優先補最近數次未覆蓋但與當日 topic 相符的來源。"]
+  output_fields: [query, priority, category, rationale, related_project, source_lane, source_ids, fallback_of]
 
 source_priority:
-  rule: "白名單只影響排序與同事件選源，不是收錄門檻。"
+  authority: "source_registry_taiwan.yaml"
+  rule: "來源等級決定搜尋角色、證據用途與同事件選源，不直接替代 Q3/Q4。"
   tiers:
-    A_official_primary: {score: 5, examples: [高雄市政府及各局處, 數位發展部, 資通安全署, 國家資通安全研究院, TWCERT/CC, 行政院]}
-    B_professional_editorial: {score: 4, examples: [iThome, 資安專業媒體, 科技及數位治理專業媒體]}
-    C_mainstream_news: {score: 3, examples: [中央社, 主要綜合媒體科技版及地方版]}
-    D_other_editorial: {score: 2}
-    X_excluded: {score: 0, examples: [PTT, Dcard, Mobile01討論串, 股票論壇, 內容農場, 未揭露來源轉貼站]}
+    A_primary: {score: 5, role: "官方／研究一手來源"}
+    B_professional: {score: 4, role: "科技／資安／研究專業來源"}
+    C_mainstream: {score: 3, role: "主流與編輯媒體"}
+    D_context: {score: 2, role: "產業、公民與同業城市補充來源"}
+    S_signal: {score: 1, role: "論壇／社群／聚合器，只負責訊號召回或需交叉驗證"}
   kcg_official_extensions:
     - {name: 高雄智慧城市建設資訊, url: "https://smartcity.kcg.gov.tw/", weight: 110}
     - {name: 高雄市政府資訊處, url: "https://dpc.kcg.gov.tw/", weight: 110}
