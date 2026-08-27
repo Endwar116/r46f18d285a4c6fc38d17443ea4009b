@@ -1,0 +1,82 @@
+meta:
+  version: "0.6.0-rc1"
+  patch: "poc-calibration-g1-g7-output-2026-08-27"
+  purpose: "把承辦可決定的日期、目標則數、分類與輸出格式集中成 PoC 校正面。"
+  status: "DRAFT_FOR_INTERNAL_POC"
+
+principles:
+  - "業務參數由承辦／Irene／專案團隊校正，Skill 不替使用者默默決定。"
+  - "G1 在搜尋開始前固定本次日期範圍與目標新聞總則數。"
+  - "G7 只檢查是否達到 G1 已設定的目標，以及交付欄位是否完整；不得在最後一刻自行改目標。"
+  - "數量不足時可以擴大來源或依允許的時間階梯補搜，但不得降低來源、事實、去重與摘要品質。"
+
+run_scope:
+  date_mode:
+    default: "TODAY"
+    allowed: [TODAY, LAST_48_HOURS, LAST_72_HOURS, CUSTOM]
+    owner: "承辦／專案團隊"
+    note: "TODAY 預設以 Asia/Taipei 當下時間決定今日範圍；若不足可依 runtime 時間階梯補搜。"
+  target_total_count:
+    value: null
+    required_before_external_poc: true
+    owner: "承辦"
+    prompt_when_missing: "今天希望最後看到幾則新聞？"
+    internal_poc_value_must_be_explicit: true
+  target_band_split:
+    standard_target: "AUTO_QUALITY_FIRST"
+    candidate_target: "FILL_REMAINDER_WITHOUT_PADDING"
+    owner: "承辦可另行指定"
+    rule: "先放合標準新聞；候選新聞補足資訊面與剩餘目標，但不得把排除項目升級。"
+
+user_facing_gates:
+  G0: "執行準備"
+  G1: "日期與目標則數"
+  G2: "來源與證據"
+  G3: "具體事實"
+  G4: "業務相關性"
+  G5: "重複判斷"
+  G6: "摘要忠實度"
+  G7: "數量與交付完整度"
+  G8: "人工確認"
+
+legacy_gate_mapping:
+  note: "既有 regression 與部分 runtime 仍使用 Q0-Q8。PoC 對外統一顯示 G0-G8；待 regression migration 後再移除 legacy alias。"
+  Q0: G0
+  Q1: G1
+  Q2: G2
+  Q3: G3
+  Q4: G4
+  Q5: G5
+  Q6: G6
+  Q7: G7
+  Q8: G8
+
+selection_display:
+  qualified:
+    internal_alias: CORE
+    display_label: "合標準"
+    meaning: "直接符合目前業務相關性與品質標準。"
+  candidate:
+    internal_alias: EXTENDED
+    display_label: "候選新聞"
+    meaning: "具延伸、比較、前瞻或追蹤價值，交由承辦決定是否採用。"
+  excluded:
+    internal_alias: EXCLUDE
+    display_label: "排除"
+
+item_output_contract:
+  required_fields: [title, summary, url]
+  summary_length_zh_chars:
+    min: 50
+    max: 100
+  title_rule: "保留原始新聞標題，不自行改寫。"
+  url_rule: "使用可開啟的完整原文連結。"
+
+final_output_contract:
+  section_order: [qualified, candidate, daily_overall_summary]
+  show_section_counts: true
+  daily_overall_summary:
+    label: "今日總摘要"
+    max_zh_chars: 250
+    rule: "只整理本次合標準＋候選新聞共同趨勢，不新增來源沒有的事實。"
+  degraded_rule: "未達 target_total_count 時，照實顯示實際則數與補搜範圍，不硬湊。"
