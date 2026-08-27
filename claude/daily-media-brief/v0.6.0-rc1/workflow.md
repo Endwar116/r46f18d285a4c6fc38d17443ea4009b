@@ -1,147 +1,152 @@
-# Daily Media Brief · Compact Workflow
+# Daily Media Brief · PoC Workflow
 
 版本：v0.6.0-rc1  
-候選修訂：source-coverage-expansion-2026-08-26
+候選修訂：poc-calibration-g1-g7-output-2026-08-27
 
 本檔是唯一流程權威。
-執行順序固定為：`Orchestrate → Collect → Filter → Dedup → Summarize → Verify → Draft → Human Review`。
+承辦可見流程統一使用 `G0–G8`。
+既有 regression 若仍使用 `Q0–Q8`，依 `poc_calibration.yaml > legacy_gate_mapping` 對照，不在承辦畫面顯示 Q。
 
-## Stage 0 · Orchestrate
+執行順序：`G0 準備 → G1 日期與目標則數 → 搜尋與關聯擴展 → G2–G6 判斷 → G7 數量與交付完整度 → G8 人工確認`。
 
-取得 Asia/Taipei 當下時間並建立 `KCG-BRIEF-YYYYMMDD-HHMM`。
-載入 `runtime.yaml`、`topic_profile.yaml`、`source_registry_taiwan.yaml`、`decision_policy.yaml`、`output_contract.md`、handover 與 published history。
-依 `runtime.yaml` 建立 T1 時間窗，週一套用 Monday rule。
+## G0｜執行準備
 
-建立 query plan 時，P0 一定跑、P1 正常跑。
-同時依本次 topic tags 從 TW100 registry 建立 active source set。
-不得把 100 個來源逐站硬查。
-優先覆蓋官方／專業來源，再輪替主流／產業／地方／同業城市來源。
-論壇、社群與聚合器先放 signal lane，只有在候選不足、分類空白、突發訊號或使用者指定時啟用。
+取得 Asia/Taipei 當下時間並建立 run_id。
+載入 `runtime.yaml`、`poc_calibration.yaml`、`topic_profile.yaml`、`source_registry_taiwan.yaml`、`decision_policy.yaml`、`output_contract.md`、handover 與 published history。
 
-每次送出搜尋 batch 前，先依 `runtime.yaml > query_budget_guard` 計算剩餘搜尋額度。
-proposed batch 超過 remaining slots 時先截斷，再送工具。
-工具若支援 domain filter，優先用來源組合進行 domain-aware search。
-不支援時，只對本輪 priority sources 使用 site: 查詢。
+## G1｜日期與目標則數
 
-使用者本次說「今天只要資安」之類條件，只形成 runtime override。
-只有使用者明確說「以後都這樣」才改永久 contract。
+搜尋開始前先固定本次執行範圍。
 
-輸出 run manifest、source coverage plan 與 query plan，狀態進入 `QUERY_PLANNED`。
+至少包含：
 
-## Stage 1 · Collect
+- 日期模式：今日／48 小時／72 小時／自訂。
+- 目標新聞總則數：由承辦決定。
+- 若承辦有指定「只看資安／只看 AI」等條件，形成本次 runtime override。
+
+外部 PoC 時，如果 `target_total_count` 尚未設定，先詢問一次「今天希望最後看到幾則新聞？」。
+不要由模型自行套用固定 12、15 或 20 則。
+
+預設日期模式為今日。
+若今日來源完整搜尋後仍不足目標，可依 runtime 的 T2／T3 階梯補搜。
+每一則候選仍需個別確認原文 publication time。
+
+## Stage A｜搜尋計畫與關聯搜尋
+
+依 active brief profile、topic profile、TW100 與歷史狀態建立 query plan。
+
+搜尋不能只靠字面關鍵字。
+至少同時使用：
+
+1. 主要關鍵字。
+2. 同義詞與專業術語。
+3. 專案／政策／技術概念。
+4. 關聯實體與事件類型。
+5. Reverse Recall：標題沒有關鍵字，但正文主旨仍可能與任務高度相關。
+
+例如「資安」主題除了搜尋資安，也要依 profile 納入 CVE、勒索軟體、供應鏈攻擊、RCE、資料外洩、零信任、弱掃等概念。
+
+語意延伸只負責提高召回率。
+是否真正值得資訊處看到，仍由 G4 判斷。
+
+每次送出搜尋 batch 前，先依 query budget guard 計算剩餘額度。
+每個 batch 回傳後先建立 candidate / excluded ledger，再允許下一批。
+
+## Stage B｜蒐集與原文驗證
 
 每條 query 獨立搜尋。
-保存 query、priority、category、title、URL、search snippet、source_id、source_class、source lane 與可見時間。
-每個 batch 回傳後先完成 candidate / excluded ledger row persistence，再允許下一批搜尋。
-ledger row coverage 未完成時，停止後續 batch 並標示 evidence incomplete。
+搜尋摘要只能用來發現候選。
+可能入選的新聞必須開原文確認發布時間、來源與可核實內容。
 
-搜尋摘要只負責召回候選，不能當最後事實來源。
-可能入選、日期不明、標題不足以判斷、需要挑一手來源或需要寫摘要時，必須開原文。
-發布時間依 `decision_policy.yaml > date_verification` 驗證。
-無法確認 publication time 的候選標 `DATE_UNVERIFIED` 並排除。
+聚合器只負責 discovery。
+論壇／社群可以保留成 SIGNAL_CANDIDATE，但高風險主張進一般清單前必須換成或補上可驗證來源。
 
-C_AGGREGATOR 只用來發現原始新聞。
-S_SIGNAL_ONLY 與 B_COMMUNITY_PRO 不在 discovery 階段直接刪除。
-它們先標 `SIGNAL_CANDIDATE`。
-若不是貼文本身就是事件，進一般待審清單前必須找到 A/B/C/D 類可驗證來源或符合 signal corroboration 規則。
+彙整型來源先展開成個別事件，再逐則進後續流程。
 
-彙整型來源先依 `digest_expansion` 展開事件，再讓每個事件獨立進後續流程。
+## G2｜來源與證據
 
-## Stage 2 · Filter
+判斷來源角色：final evidence／discovery／signal-only。
+來源不在 TW100 不等於自動排除，但必須能說明證據用途。
 
-順序固定：便宜雜訊規則 → Q2 來源角色／證據用途 → Q3 具體事實 → 語意主旨 → Q4 資訊處相關性。
+## G3｜具體事實
 
-Q2 不再把「論壇／社群」等同垃圾來源。
-Q2 的工作是先分類來源角色：`final evidence / discovery / signal-only`。
-高風險事實仍禁止以論壇／社群單獨定案。
+保留有新事件、公告、政策、研究、漏洞、部署、數據或可信群體訊號的內容。
+純評論、純行銷、純投資、純消費內容依負向條件處理。
 
-使用 `decision_policy.yaml` 的唯一 relevance score 與 selection bands。
-`score >= 5` 為 `CORE`。
-`score 3–4` 且 Q1/Q2/Q3/S3 條件都通過時為 `EXTENDED`。
-`score <= 2` 為 `EXCLUDE`。
+## G4｜業務相關性
 
-CORE 是核心輿情。
-EXTENDED 是延伸觀測，可進承辦待審清單，但必須明確標示，不假裝與 CORE 相同強度。
+先判斷文章真正主旨，再問它對目前 brief profile 的業務是否有「知道、比較、留意、調整、追蹤」價值。
 
-所有排除都留下標題、理由、score、negative signals、source_id、source_class、selection_band 與 related project/duty。
-這份 excluded ledger 是之後回答「為什麼沒收」的依據。
+承辦可見分類：
 
-## Stage 3 · Dedup
+- `合標準`：internal alias `CORE`。
+- `候選新聞`：internal alias `EXTENDED`。
+- `排除`：internal alias `EXCLUDE`。
 
-先做本批同事件去重，再跟 `state/published_history.jsonl` 做跨日去重。
-比對順序是 URL、標題正規化、event_key 語意比對。
+標題沒有關鍵字仍可列入合標準或候選新聞。
+只要正文主旨與 profile 的業務責任／專案／風險／比較案例實質相關即可。
 
-同事件多來源時優先保留官方一手來源，其次完整度、來源層級與首發時間。
-論壇／社群若只是同事件轉貼，不增加則數。
-若社群本身是事件的一部分，保留其訊號角色，但仍與可驗證來源綁定。
+## G5｜重複判斷
 
-後續報導若有新增官方回應、數據或受害範圍，可以視為新事件進展。
-只有重述與評論則排除。
+先做本批同事件去重，再與歷史比對。
+比對 URL、標題正規化、event_key 與新增事實。
+同事件多來源只留最適合的一則。
 
-history 為空時不中止執行。
-Q5 必須標 DEGRADED，並告知跨日去重保護不完整。
+## G6｜摘要忠實度
 
-## Stage 4 · Summarize
+每則保留原始新聞標題。
+摘要以繁體中文 50–100 字為目標。
+摘要只寫原文可支持的事實，不補模型猜測。
+每則必須保留完整原文 URL。
 
-每則保留原標題，不改寫。
-輸出來源、來源類別、selection band、發布時間、完整原文 URL、分類、2–3 句繁體中文摘要與內部相關性理由。
+## G7｜數量與交付完整度
 
-摘要回答「發生什麼、涉及誰與規模、若有直接證據則補公部門意涵」。
-所有事實都必須回到原文。
-原文沒有的數字、時間與判斷不能自行補。
+G7 不重新決定目標則數。
+它只拿 G1 已設定的 `target_total_count` 做完成度檢查。
 
-EXTENDED 的內部理由要說清楚它是比較案例、前瞻技術、治理變化或需追蹤的訊號。
-不能只寫「跟 AI 有關」。
+若目前合標準＋候選新聞不足：
 
-## Stage 5 · Verify / Volume Recovery
+1. 先擴大同日 TW100 來源覆蓋。
+2. 補未覆蓋的主流／產業／地方／同業城市來源。
+3. 必要時啟動 signal lane，再回頭找可驗證來源。
+4. 同日仍不足才依 T2、T3 補搜。
+5. 到上限仍不足就標 DEGRADED，顯示實際則數，不硬湊。
 
-逐則執行 Q0–Q8。
-Q1、Q3、Q5、Q6 任一 FAIL 的單篇不得進待審 LINE 草稿。
-Q2 signal-only 項目需完成換源或交叉驗證。
-Q4 可為 CORE 或 EXTENDED。
-Q8 在人審前固定 WAIT。
+進入待審輸出前，每一則都必須有：
 
-若 T1 的 CORE＋EXTENDED 低於 target_min，補量順序固定：
+- 新聞標題。
+- 50–100 字摘要。
+- 完整原文連結。
 
-1. 先用 TW100 registry 擴大同日來源覆蓋。
-2. 補足尚未覆蓋的主流／產業／地方／同業城市來源帶。
-3. 必要時啟動 signal lane，將論壇／社群只作早期訊號，再回頭找證據來源。
-4. 同日來源擴張仍不足，才擴到 T2。
-5. T2 仍不足再跑 T3。
+最終輸出固定分成：
 
-任何階段都不得把 EXCLUDE 升成 EXTENDED 或 CORE。
-也不得降低日期驗證、事實性、去重或摘要忠實度。
+1. `合標準（X 則）`。
+2. `候選新聞（X 則）`。
+3. `今日總摘要`，250 字以內。
 
-每次 run 都記錄 CORE、EXTENDED、source expansion、signal candidate、T1、T2、T3 的 yield telemetry。
-累積五個工作日後再判斷主要瓶頸是來源覆蓋、Q4 誤殺還是時間窗太窄。
+今日總摘要只總整本批新聞共同趨勢，不新增來源不存在的事實。
 
-## Stage 6 · Draft
+## G8｜人工確認
 
-依 `output_contract.md` 依序產出：run summary、source coverage summary、Q0–Q8、審核表、LINE 草稿、excluded ledger 摘要、待確認設定。
-此時狀態固定是 `AWAITING_HUMAN_REVIEW`。
+系統輸出待審稿後固定停在 `AWAITING_HUMAN_REVIEW`。
 
-承辦審核表中，CORE 正常呈現。
-EXTENDED 必須標 `延伸觀測`。
-若有 SIGNAL_CANDIDATE 尚未完成交叉驗證，只能放「待查訊號」，不得混進可貼 LINE 草稿。
+承辦可說：
 
-承辦可以輸入：`刪除 3、7`、`第 5 則換掉`、`智慧城市多找兩則`、`論壇訊號多看一下`、`只留核心輿情`、`只留今日的`、`為什麼沒收 X`。
-系統只重跑受影響部分，不需要整批從零開始。
+- 刪除 3、7。
+- 第 5 則換掉。
+- 資安再找兩則。
+- 只留合標準。
+- 候選新聞少一點。
+- 為什麼這則被列為候選。
+- 通過／定版／可以了。
 
-## Stage 7 · Human Review / Finalize
-
-只有使用者明確說「通過／定版／可以了」，Q8 才 PASS。
-之後才可以產生或寫回 `published_history.jsonl`。
-週五定版時同步更新 `state/handover.md`。
-
-若執行環境沒有檔案寫入能力，輸出待保存內容並明確標示尚未持久化。
-不得把「已產生內容」寫成「已保存」。
+只有使用者明確通過後，G8 才 PASS。
+之後才允許形成 history 更新。
 
 ## Failure behavior
 
 搜尋部分失敗只重試受影響 query 一次。
-原文抓取失敗且無替代可靠來源時移除該則。
-核心來源互相衝突時標待查並移出 LINE draft。
-工具不可用時停止受影響階段，列出未完成事項，不宣告完成。
-搜尋 batch 超過剩餘額度時，在 dispatch 前截斷。
-ledger row coverage 未完成時，停止下一批搜尋並保留 evidence incomplete 狀態。
-來源 registry 某站失效時標 `SOURCE_UNAVAILABLE`，換同類來源，不中止整個 run。
+日期無法驗證的新聞排除。
+證據來源不足的高風險新聞不進一般清單。
+目標則數不足不等於可以降低 G2、G3、G5、G6。
+工具不可用時停止受影響階段並列出未完成事項，不宣告完成。
