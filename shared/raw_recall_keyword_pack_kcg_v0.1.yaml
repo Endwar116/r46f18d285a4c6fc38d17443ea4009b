@@ -1,0 +1,162 @@
+meta:
+  id: "KCG-RAW-KEYWORD-PACK-v0.1"
+  date: "2026-08-31"
+  status: "DESIGN_CANDIDATE__NOT_RUNTIME_VALIDATED"
+  purpose: "提供跨模型 Raw Recall Lane 使用的受控關鍵字包；不取代正式 topic_profile，也不直接決定最終收錄。"
+
+scope:
+  locale: "Taiwan"
+  local_focus: "Kaohsiung"
+  default_timezone: "Asia/Taipei"
+
+primary_keywords:
+  source_status: "OFFICER_PROVIDED__PENDING_TEAM_CALIBRATION"
+  terms:
+    - id: K001
+      term: "高雄市"
+      aliases: ["高雄"]
+    - id: K002
+      term: "高雄市政府研究發展考核委員會"
+      aliases: ["高雄市研考會", "高雄研考會", "研考會"]
+    - id: K003
+      term: "高雄市政府資訊處"
+      aliases: ["高雄資訊處", "資訊處"]
+    - id: K004
+      term: "智慧城市"
+      aliases: ["Smart City", "智慧治理"]
+    - id: K005
+      term: "物聯網"
+      aliases: ["IoT", "AIoT", "5G AIoT"]
+    - id: K006
+      term: "大數據資訊"
+      aliases: ["大數據", "資料分析", "城市大數據", "資料治理"]
+    - id: K007
+      term: "資安"
+      aliases: ["資通安全", "cybersecurity", "資訊安全"]
+    - id: K008
+      term: "AI"
+      aliases: ["人工智慧", "生成式AI", "生成式 AI", "AI Agent", "Agentic AI", "主權AI"]
+    - id: K009
+      term: "數位發展部"
+      aliases: ["數發部", "MODA", "數位產業署", "數產署"]
+    - id: K010
+      term: "市民卡"
+      aliases: ["高雄市民卡", "數位市民", "高雄數位市民"]
+    - id: K011
+      term: "一卡通"
+      aliases: ["iPASS", "iPASS MONEY"]
+    - id: K012
+      term: "MyData"
+      aliases: ["MyData 平台", "數位發展部 MyData", "個人化資料自主運用"]
+    - id: K013
+      term: "智慧杆"
+      aliases: ["智慧桿", "智慧燈桿", "智慧路燈"]
+
+related_keyword_groups:
+  ai_governance:
+    priority: high
+    terms:
+      - "AI治理"
+      - "AI安全"
+      - "AI採購"
+      - "AI資料治理"
+      - "AI基礎設施"
+      - "主權AI"
+      - "大型語言模型"
+      - "多模態AI"
+      - "VLM"
+      - "MCP"
+      - "AI Agent"
+  cybersecurity:
+    priority: high
+    terms:
+      - "資料外洩"
+      - "API金鑰"
+      - "勒索軟體"
+      - "供應鏈攻擊"
+      - "零信任"
+      - "弱點掃描"
+      - "資安通報"
+      - "CVE"
+      - "RCE"
+      - "SBOM"
+      - "SOC"
+      - "EDR"
+  smart_city_data:
+    priority: high
+    terms:
+      - "數位孿生"
+      - "5D數位孿生"
+      - "跨局處資料整合"
+      - "城市資料平台"
+      - "數位公共服務"
+      - "智慧交通"
+      - "智慧水利"
+      - "智慧防災"
+      - "智慧治安"
+      - "城市韌性"
+      - "GIS"
+  digital_transformation:
+    priority: medium
+    terms:
+      - "數位轉型"
+      - "政府數位服務"
+      - "數位身分"
+      - "資料共享"
+      - "雲端"
+      - "政府AI"
+      - "公共服務AI"
+      - "智慧製造"
+
+project_watchlist:
+  source_status: "PROJECT_CONTEXT_CANDIDATE"
+  items:
+    - "智慧高雄主權 AI 燈塔計畫"
+    - "高雄數位市民"
+    - "數位市民整合服務平台"
+    - "高雄智慧城市專案辦公室"
+    - "高雄市智慧城市推動委員會"
+    - "地理資訊共通平台"
+    - "數位孿生 5D 智慧城市工務管理暨決策輔助平台"
+    - "M 里幹事平台"
+    - "MaaS"
+    - "MeNGo"
+    - "亞灣 5G AIoT"
+    - "亞灣智慧科技創新園區"
+    - "智慧水利監測密網平台"
+    - "AI 驅動詐騙集團人頭帳戶識別與警示"
+    - "智慧沙灘 AI 監測系統"
+    - "AI 智慧防溺系統"
+    - "新一代智慧運輸系統"
+    - "AI 智慧化號誌控制系統"
+    - "路口 AI 影像分析"
+
+raw_query_templates:
+  primary_direct:
+    - "{date_zh} {term} 新聞"
+  primary_local_boost:
+    - "{date_zh} 高雄 {term}"
+  related:
+    - "{date_zh} {term} 新聞 台灣"
+  project:
+    - "{date_zh} {term}"
+  broad:
+    - "{date_zh} AI 新聞 台灣"
+    - "{date_zh} 人工智慧 台灣"
+    - "{date_zh} 資安 新聞 台灣"
+    - "{date_zh} 智慧城市 台灣"
+    - "{date_zh} 數位治理 台灣"
+    - "{date_zh} 高雄 AI 智慧城市"
+
+execution_rules:
+  - "每個 Primary Keyword 至少被一條 direct query 覆蓋。"
+  - "Alias 可補搜，但不能讓 Primary Keyword 本身完全沒被搜。"
+  - "Related terms 是受控擴展，不允許執行模型自行無限擴寫。"
+  - "Raw Lane 只做最小去重／日期清理，不做最終相關性判斷。"
+  - "Raw 結果要帶 matched_terms 與 query_origin，方便正式流程追蹤來源。"
+  - "若查詢成本受限，先保留所有 Primary Keyword direct coverage，再縮 related/project budget。"
+
+handoff:
+  formal_profile_candidate: "design/poc_search_profile_candidate_2026-08-31.yaml"
+  raw_prompt: "shared/RAW_RECALL_POWER_META_PROMPT.md"
+  merge_point: "before G2"
