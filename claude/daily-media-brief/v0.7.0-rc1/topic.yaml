@@ -1,0 +1,114 @@
+# 主題設定｜資訊處資安・AI・智慧城市
+# 換主題：複製本檔、改下面內容、存成 topic.yaml。SKILL.md 不動。
+
+meta:
+  topic_id: kcg-it-infosec-ai-smartcity
+  version: "0.7.0-rc1"
+  owner: 資源管理科輿情輪值
+  keyword_source: "資訊處提供，2026-08-31"
+
+target_default: 8
+# 依實測校正：帶時間錨點後每 2 條查詢約 1 則今日命中，16 條保守估 4 則，8 則＝今日＋48h 補足。
+# 5 個工作日後重新校正。
+
+categories:
+  - {id: infosec, label: 資安}
+  - {id: ai, label: AI與數位政策}
+  - {id: smartcity, label: 智慧城市與市民卡}
+  - {id: local, label: 高雄在地}
+
+# 資訊處提供的 13 組基礎關鍵字
+keywords:
+  primary: [高雄市, 高雄市政府研究發展考核委員會, 高雄市政府資訊處, 智慧城市, 物聯網, 大數據資訊, 資安, AI, 數位發展部, 市民卡, 一卡通, MyData, 智慧杆]
+  alias:
+    智慧杆: [智慧橿, 智慧路燈, 智慧燈杆]
+    大數據資訊: [大數據, 城市大數據]
+    AI: [人工智慧, 生成式AI]
+    物聯網: [IoT, AIoT, 5G AIoT]
+    一卡通: [iPASS]
+
+# 預建查詢。{date} 執行時換成今日。每批 4–5 條同時送。
+queries:
+  p0:
+    - "高雄 主權AI {date}"
+    - "高雄 智慧城市 資訊處 {date}"
+    - "高雄 數位市民 市民卡 {date}"
+    - "高雄 城市治理 AI {date}"
+    - "政府 資安 漏洞 台灣 {date}"
+    - "公務機關 資安事件 {date}"
+    - "資通安全署 公告 {date}"
+    - "TWCERT 漏洞 {date}"
+    - "勒索軟體 政府 台灣 {date}"
+    - "資料外洩 政府 台灣 {date}"
+    - "數位發展部 政策 {date}"
+    - "生成式AI 公務機關 {date}"
+    - "智慧城市 市政府 台灣 {date}"
+    - "物聯網 智慧杆 高雄 {date}"
+    - "MyData 數位服務 {date}"
+    - "高雄市政府 資訊 {date}"
+  p1:
+    - "AI Agent 政府 資安 {date}"
+    - "零信任 政府 台灣 {date}"
+    - "供應鏈攻擊 政府 {date}"
+    - "數位孿生 市政府 {date}"
+    - "智慧交通 AI 市政府 {date}"
+    - "政府 AI 採購 治理 {date}"
+    - "高雄 數位轉型 {date}"
+    - "資安院 政府機關 {date}"
+
+# 來源。ev=✓ 可當最終證據；ev=✗ 只能發現。完整 100 筆在 reference/，執行不載。
+sources:
+  hot_start:
+    - {id: TW002, name: 高雄市政府資訊處, class: A, ev: ✓}
+    - {id: TW003, name: 高雄智慧城市, class: A, ev: ✓}
+    - {id: TW004, name: 數位發展部, class: A, ev: ✓}
+    - {id: TW005, name: 資通安全署, class: A, ev: ✓}
+    - {id: TW007, name: 國家資通安全研究院, class: A, ev: ✓}
+    - {id: TW008, name: TWCERT/CC, class: A, ev: ✓}
+    - {id: TW021, name: iThome, class: B, ev: ✓}
+    - {id: TW033, name: 資安人科技網, class: B, ev: ✓}
+  expansion:
+    - {id: TW006, name: 數位產業署, class: A, ev: ✓}
+    - {id: TW024, name: 數位時代, class: B, ev: ✓}
+    - {id: TW026, name: DIGITIMES, class: B, ev: ✓}
+    - {id: TW041, name: 中央社, class: C, ev: ✓}
+    - {id: TW042, name: 聯合新聞網, class: C, ev: ✓}
+    - {id: TW043, name: 自由時報, class: C, ev: ✓}
+    - {id: TW070, name: 遠見雜誌, class: C, ev: ✓}
+    - {id: TW083, name: 臺北市資訊局, class: D, ev: ✓}
+    - {id: TW085, name: 臺中市數位發展局, class: D, ev: ✓}
+  signal_only:
+    - {id: TW062, name: Yahoo奇摩新聞, class: C, ev: ✗}
+    - {id: TW090, name: PTT, class: S, ev: ✗}
+    - {id: TW091, name: Dcard, class: S, ev: ✗}
+  class_meaning: "A 官方／B 專業媒體／C 主流媒體／D 同業城市／S 論壇社群。同事件多來源依 A>B>C>D 保留。"
+
+# G4 相關性評分（≥ 5 合標準，3–4 候選，≤ 2 排除）
+relevance:
+  直接命中資訊處專案: 6
+  高雄市府城市治理專案: 5
+  影響政府的国家政策或資安規定: 5
+  對公部門有意義的重大資安事件或漏洞: 5
+  同業城市可比較案例: 3
+  有明確政府部署影響的AI技術變化: 3
+  泛談AI或智慧城市: 0
+  投資股市為主: -6
+  選舉政黨攻防為主: -6
+  純消費產品: -5
+  純廠商行銷: -4
+  論壇意見: -6
+  anchors: "智慧高雄主權AI燈塔計畫、高雄數位市民、智慧城市專案辦公室、城市治理VLM、數位孿生5D、地理資訊共通平台、智慧水利監測、AI詐騙預警、智慧沙灘、智慧防溺、AI號誌控制"
+
+# 雜訊。注意：這些詞出現不等於排除，要看是不是主旨。
+noise:
+  投資股市: [美股, 台股, 概念股, 個股, ETF, 目標價, 漲停, 跌停, EPS]
+  遊戲消費: [手遊, 電競, 遊戲開箱, 預購, 售價, 購機]
+  選舉口水: [造勢, 民調, 候選人互批, 政黨攻防, 罷免]
+  廠商行銷降權: [宣布推出, 隆重推出, 一站式解決方案, 市場領先]
+  不因單字排除: [NVIDIA, OpenAI, Microsoft, Google, 台積電, 晶片, 雲端, 政治人物姓名]
+
+# 選項。預設關閉。品質穩定後可開。
+options:
+  trust_se_date: false
+  # 開啟後：A/B 類來源且搜尋結果有明確日期欄時不開原文。標題含日期仍一律開。
+  # 預估可省 60% 驗證次數。風險：搜尋引擎日期欄偶爾有誤。
