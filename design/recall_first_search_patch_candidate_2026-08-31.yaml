@@ -1,0 +1,128 @@
+meta:
+  version: "candidate-2026-08-31"
+  status: "DESIGN_CANDIDATE__NOT_RUNTIME_VALIDATED"
+  purpose: "修正 Daily Media Brief 召回量過低問題；將最終輸出目標與搜尋候選池分離，並把 broad recency discovery 前移。"
+  evidence_trigger: "2026-08-31 user comparison: simple Google query '8月31日AI新聞' surfaced multiple same-day relevant items while current Skill yield remained sparse."
+
+problem_statement:
+  - "目前 target_total_count 同時被當成最終輸出目標與 early-stop 依據，候選池過小。"
+  - "broad_recall（如 AI 台灣 新聞）被放在 P3，precision-first 查詢先消耗 budget。"
+  - "query budgets P0=16, P1=10, P2=6, P3=4，但 max_total=32；若 P0+P1+P2 都跑，P3 broad recall 理論上沒有剩餘 budget。"
+  - "現有 hot_start AI 來源偏 official/professional，未包含 CNA、TechNews 等高產出 same-day discovery 來源。"
+  - "現有靜態 query strings 缺少強制日期錨點；既有 telemetry 已顯示未帶時間錨點時 T1 連續為 0。"
+  - "目前 default target=8 是依低 yield 校正；在 recall layer 尚未修正前，不應把低 yield 反向固化成產品目標。"
+
+core_change:
+  separate_targets:
+    output_target:
+      source: "G1 target_total_count"
+      meaning: "承辦最後希望看到的新聞則數。"
+    discovery_pool_target:
+      candidate_formula: "max(output_target * 3, 24)"
+      meaning: "G4 前至少希望形成的去重事件候選池，不等於最後輸出。"
+      status: "POC_CALIBRATION_CANDIDATE"
+    eligible_pool_target:
+      candidate_formula: "max(ceil(output_target * 1.5), output_target + 4)"
+      meaning: "G4 後合標準＋候選新聞的可選池，提供人工替換與多樣性。"
+      status: "POC_CALIBRATION_CANDIDATE"
+
+  early_stop:
+    old_rule: "合標準＋候選新聞達 output target 即停止擴展。"
+    candidate_rule: |
+      不得只因 output_target 已達成就立即停止 discovery。
+      至少完成 baseline broad sweep，且 discovery_pool / eligible_pool / source-lane coverage 達標後才能 early stop。
+
+search_architecture:
+  stage_0_broad_recency_sweep:
+    priority: "P0_RECALL"
+    always_run: true
+    purpose: "先知道今天市場上實際有什麼，再交給後續業務相關性判斷。"
+    query_templates:
+      - "{date_zh} AI 新聞 台灣"
+      - "{date_zh} 人工智慧 台灣"
+      - "{date_zh} 資安 新聞 台灣"
+      - "{date_zh} 智慧城市 台灣"
+      - "{date_zh} 數位發展部 AI"
+      - "{date_zh} 高雄 AI 智慧城市"
+    rules:
+      - "每條初始 discovery query 都帶 Asia/Taipei 當日日期錨點。"
+      - "若 search tool 支援 recency/date filter，同時使用 tool-level recency；query date 仍保留作語意錨點。"
+
+  stage_1_high_yield_source_sweep:
+    priority: "P0_SOURCE_SWEEP"
+    purpose: "直接覆蓋每日高產出來源，不必等到 generic web query 偶然命中。"
+    candidate_sources:
+      - {id: TW021, name: iThome}
+      - {id: TW022, name: TechNews 科技新報}
+      - {id: TW026, name: DIGITIMES}
+      - {id: TW041, name: 中央社 CNA}
+      - {id: TW004, name: 數位發展部}
+      - {id: TW006, name: 數位發展部數位產業署}
+      - {id: TW042, name: 聯合新聞網}
+      - {id: TW062, name: Yahoo奇摩新聞, role: discovery_only}
+    note: "不是逐站掃 TW100；是建立小型 high-yield daily sweep lane。"
+
+  stage_2_profile_precision:
+    priority: "P1_PRECISION"
+    purpose: "再跑高雄／資訊處／專案／政府 AI／資安等精準 query。"
+    source: "topic_profile query_groups kcg_direct / cybersecurity_public_sector / ai_public_governance"
+
+  stage_3_semantic_and_project_expansion:
+    priority: "P2_EXPANSION"
+    purpose: "使用 alias、professional term、project watchlist、reverse recall 補回字面關鍵字未命中的事件。"
+
+  stage_4_signal_and_fallback:
+    priority: "P3_FALLBACK"
+    purpose: "論壇、聚合器、社群與 T2/T3 只在候選池或分類 coverage 不足時補召回。"
+
+budget_candidate:
+  discovery_total_hard_cap: 32
+  allocation:
+    broad_recency_sweep: 8
+    high_yield_source_sweep: 8
+    profile_precision: 12
+    fallback_and_expansion: 4
+  note: "verification budget 另計；避免 precision queries 吃完 broad recall budget。"
+
+coverage_gate_before_early_stop:
+  require:
+    - "baseline broad recency sweep completed"
+    - "core lane represented"
+    - "editorial/mainstream lane represented"
+    - "至少一個 high-yield source sweep completed"
+    - "discovery_pool_target met OR query budget exhausted"
+    - "eligible_pool_target met OR query budget exhausted"
+  diversity_checks:
+    - "至少兩種 source classes"
+    - "若 brief 同時含 AI/資安/智慧城市，多類別不得因第一類先達標就完全跳過其他類別"
+
+lifecycle_link:
+  discovered_news: "每個已開啟／評估的 unique event 都寫入 discovered ledger；不等於 selected/published。"
+  selected_news: "G8 人工保留項目。"
+  published_news: "只在外部發布事件確認後寫入。"
+
+example_expected_classification_from_2026_08_31_observation:
+  - item: "數發部強化源頭阻詐，以 AI 對抗 AI 詐騙"
+    expected: "CORE candidate"
+    rationale: "中央政策＋AI＋數位安全，直接符合政府 AI/資安責任。"
+  - item: "中央社推出新聞 MCP 工具"
+    expected: "EXTENDED candidate"
+    rationale: "AI 資訊取得／MCP infrastructure，具數位治理與 AI toolchain 比較價值。"
+  - item: "臺灣 AI 新創 Zeabur 環境變數外洩"
+    expected: "CORE candidate"
+    rationale: "AI service/API credential security，具直接資安價值。"
+  - item: "中華電信 5G 專網支援 AI 營建機器人"
+    expected: "EXTENDED candidate"
+    rationale: "5G AIoT／城市與公共工程應用比較價值。"
+  - item: "Sony 控告 Anthropic AI 訓練侵權"
+    expected: "EXTENDED or EXCLUDE depending active profile"
+    rationale: "AI 治理／著作權具前瞻性，但非資訊處每日核心。"
+  - item: "總統接見學生機器人社團"
+    expected: "usually EXCLUDE"
+    rationale: "AI 字樣存在，但對資訊處當日業務 actionability 低。"
+
+validation_plan:
+  - "用 2026-08-31 作固定 regression day，對照 Google-like baseline recall。"
+  - "比較 old vs recall-first: unique discovered events, same-day count, eligible count, final count, garbage ratio。"
+  - "至少保留 user-provided examples 作 expected-hit set。"
+  - "完成 internal PoC 前不得宣稱 runtime fixed。"
