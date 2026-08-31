@@ -1,0 +1,140 @@
+meta:
+  date: "2026-08-31"
+  status: "DESIGN_CANDIDATE__NOT_RUNTIME_VALIDATED"
+  purpose: "保存目前已整理的承辦關鍵字、Alias、Semantic Expansion 與專案 Watchlist，供 Overview 校正後再合併至平台 runtime authority。"
+  merge_target:
+    - "claude/daily-media-brief/v0.6.0-rc1/topic_profile.yaml"
+    - "chatgpt/daily-media-brief/v0.6.0-rc1/topic_profile.yaml"
+
+search_planner_position:
+  flow: "G1 -> Search Planner -> G2"
+  is_gate: false
+  responsibilities:
+    - primary_keywords
+    - aliases_and_normalization
+    - semantic_expansion
+    - project_watchlist
+    - query_plan
+    - tw100_active_source_set
+
+primary_keywords:
+  source_status: "OFFICER_PROVIDED__PENDING_TEAM_CALIBRATION"
+  terms:
+    - "高雄市"
+    - "高雄市政府研究發展考核委員會"
+    - "高雄市政府資訊處"
+    - "智慧城市"
+    - "物聯網"
+    - "大數據資訊"
+    - "資安"
+    - "AI"
+    - "數位發展部"
+    - "市民卡"
+    - "一卡通"
+    - "MyData"
+    - "智慧杆"
+
+aliases_and_normalization:
+  status: "CANDIDATE_REVIEW"
+  mappings:
+    "智慧杆": ["智慧桿", "智慧路燈", "智慧燈桿"]
+    "大數據資訊": ["大數據", "資料分析", "城市大數據"]
+    "AI": ["人工智慧", "生成式AI", "生成式 AI"]
+    "物聯網": ["IoT", "AIoT", "5G AIoT"]
+    "MyData": ["MyData 平台", "數位發展部 MyData"]
+    "一卡通": ["iPASS"]
+
+semantic_expansion:
+  status: "CANDIDATE_REVIEW"
+  governance_and_ai:
+    - "主權AI"
+    - "城市級主權AI"
+    - "VLM"
+    - "視覺語言模型"
+    - "多模態AI"
+    - "AI治理"
+    - "AI採購"
+    - "AI安全"
+    - "AI資料治理"
+    - "AI Agent"
+    - "Agentic AI"
+    - "AI基礎設施"
+  cybersecurity:
+    - "資通安全"
+    - "資安法"
+    - "駭客攻擊"
+    - "勒索軟體"
+    - "資料外洩"
+    - "個資外洩"
+    - "供應鏈攻擊"
+    - "零信任"
+    - "弱點掃描"
+    - "資安通報"
+    - "CVE"
+    - "RCE"
+    - "SBOM"
+    - "EDR"
+    - "SOC"
+  smart_city_and_data:
+    - "數位孿生"
+    - "5D數位孿生"
+    - "GIS"
+    - "跨局處資料整合"
+    - "城市資料平台"
+    - "智慧治理"
+    - "智慧交通"
+    - "智慧水利"
+    - "智慧防災"
+    - "智慧治安"
+    - "城市韌性"
+    - "數位公共服務"
+    - "數位轉型"
+    - "智慧製造"
+    - "雲端"
+    - "資訊韌性"
+
+project_watchlist:
+  status: "CANDIDATE_REVIEW"
+  items:
+    - "智慧高雄主權 AI 燈塔計畫"
+    - "高雄數位市民"
+    - "數位市民整合服務平台"
+    - "高雄智慧城市專案辦公室"
+    - "高雄市智慧城市推動委員會"
+    - "地理資訊共通平台"
+    - "數位孿生 5D 智慧城市工務管理暨決策輔助平台"
+    - "M 里幹事平台"
+    - "MaaS / MeNGo"
+    - "亞灣 5G AIoT"
+    - "亞灣智慧科技創新園區"
+    - "智慧水利監測密網平台"
+    - "AI 驅動詐騙集團人頭帳戶識別與警示"
+    - "智慧沙灘 AI 監測系統"
+    - "AI 智慧防溺系統"
+    - "新一代智慧運輸系統"
+    - "AI 智慧化號誌控制系統"
+    - "路口 AI 影像分析"
+
+retrieval_principles:
+  - "字面關鍵字只負責部分召回，不是唯一入口。"
+  - "文章標題沒有 Primary Keyword，但正文主旨與主題／專案／事件類型實質相關時，必須保留召回機會。"
+  - "Semantic Expansion 只提高召回率；最終是否收錄仍由 G4 業務相關性判斷。"
+  - "一次性使用者 override 不自動修改永久 Profile。"
+  - "TW100 不逐站全掃，依主題與 source tags 建 active_source_set。"
+
+negative_condition_candidates:
+  status: "PENDING_TEAM_CALIBRATION"
+  items:
+    - id: finance_investment
+      rule: "主要目的為投資、股價或個股解讀時排除；若事件本身直接影響政府科技政策則例外評估。"
+    - id: gaming_consumer
+      rule: "純遊戲、消費電子或新品開箱排除。"
+    - id: election_noise
+      rule: "純選舉或政黨攻防排除；正式政府政策／制度變更仍可評估。"
+    - id: vendor_marketing
+      rule: "純廠商自我宣傳降權；若有具體政府部署、驗證、政策或可比較案例可再評估。"
+
+handoff_note: |
+  此檔是 2026-08-31 將分散於 Overview／討論／既有 topic_profile 的搜尋設計收斂成單一可校正候選。
+  它尚未取代兩平台 topic_profile.yaml。
+  下一步應在業務校正後，明確 merge 到 Claude/ChatGPT 兩 lane 並做 diff/static validation，再進 Internal PoC。
