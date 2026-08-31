@@ -1,0 +1,73 @@
+# Source Lane Index｜TW100 輕量索引
+
+meta:
+  version: "0.6.0-rc1"
+  patch: "runtime-efficiency-2026-08-31"
+  registry_id: "TW100-COVERAGE-2026-08"
+  purpose: "供 G0 啟動階段快速載入的來源分層索引，避免每次 run 全載 15KB 完整 registry。"
+  full_registry: "source_registry_taiwan.yaml"
+  status: "EFFICIENCY_INDEX__NOT_A_REPLACEMENT"
+
+why_this_file_exists: |
+  source_registry_taiwan.yaml 完整檔約 15KB、含 100 筆具名來源。
+  但該檔本身已明定 scan_all_each_run: false，
+  代表單次 run 實際只會用到其中一小部分來源。
+  G0 若每次全載，等於固定付出全額載入成本卻只用一小部分，
+  這是單次執行啟動過慢的主因之一（BRSCP P1）。
+
+  本檔只保留「選源決策所需的最小資訊」：
+  class 定義、各 class 的來源數量、topic 對應。
+  真正需要具體 URL 與來源名稱時，才查完整 registry。
+
+loading_policy:
+  g0_load: "本檔（source_lane_index.yaml）"
+  full_registry_load: "延後至 Search Planner 實際挑選 active_source_set 時"
+  rule: "G0 不得載入完整 source_registry_taiwan.yaml。"
+  fallback: "若本檔缺失或與完整 registry 不一致，回退為載入完整 registry 並記錄不一致。"
+
+# class 定義：決定搜尋角色與證據用途，與完整 registry 一致
+classes:
+  A_OFFICIAL:      {weight: 5, role: primary_evidence,               final_evidence: true,  count: 17}
+  A_INSTITUTION:   {weight: 5, role: primary_or_research_evidence,   final_evidence: true,  count: 3}
+  B_PROFESSIONAL:  {weight: 4, role: professional_editorial,         final_evidence: true,  count: 16}
+  B_RESEARCH:      {weight: 4, role: research_analysis,              final_evidence: true,  count: 3}
+  B_COMMUNITY_PRO: {weight: 3, role: professional_signal,            final_evidence: false, count: 1}
+  C_MAINSTREAM:    {weight: 3, role: mainstream_editorial,           final_evidence: true,  count: 23}
+  C_EDITORIAL:     {weight: 3, role: editorial_analysis,             final_evidence: true,  count: 2}
+  C_AGGREGATOR:    {weight: 2, role: discovery_aggregator,           final_evidence: false, count: 2}
+  C_BUSINESS:      {weight: 3, role: business_editorial,             final_evidence: true,  count: 3}
+  D_BUSINESS:      {weight: 2, role: business_signal,                final_evidence: true,  count: 7}
+  D_PUBLIC_MEDIA:  {weight: 3, role: public_media,                   final_evidence: true,  count: 1}
+  D_CIVIC:         {weight: 2, role: civic_editorial,                final_evidence: true,  count: 4}
+  D_PEER_GOV:      {weight: 4, role: peer_city_primary,              final_evidence: true,  count: 7}
+  S_SIGNAL_ONLY:   {weight: 1, role: signal_only,                    final_evidence: false, count: 11}
+
+# 每個 topic 對應哪些 class，Search Planner 依此決定要查完整 registry 的哪一段
+topic_to_class:
+  cybersecurity: [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, B_RESEARCH, C_MAINSTREAM]
+  ai:            [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, B_RESEARCH, C_BUSINESS]
+  smartcity:     [A_OFFICIAL, B_PROFESSIONAL, D_PEER_GOV, C_BUSINESS]
+  local:         [A_OFFICIAL, C_MAINSTREAM, D_PEER_GOV]
+  government:    [A_OFFICIAL, A_INSTITUTION, C_MAINSTREAM]
+  digital_governance: [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, D_PEER_GOV]
+
+# 高頻起手來源：多數 run 的第一批只需要這些，不必開完整 registry
+hot_start_sources:
+  note: "涵蓋率最高的起手來源。第一批搜尋可直接使用，不需載入完整 registry。"
+  cybersecurity: [TW005, TW007, TW008, TW021, TW033]
+  ai:            [TW004, TW006, TW021, TW024, TW026]
+  smartcity:     [TW002, TW003, TW083, TW085]
+  local:         [TW001, TW002, TW003]
+
+lane_policy:
+  minimum_lane_coverage: [core, editorial]
+  core_classes:      [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, B_RESEARCH]
+  editorial_classes: [C_MAINSTREAM, C_EDITORIAL, C_BUSINESS, D_BUSINESS, D_PUBLIC_MEDIA, D_CIVIC, D_PEER_GOV]
+  signal_classes:    [B_COMMUNITY_PRO, C_AGGREGATOR, S_SIGNAL_ONLY]
+  signal_activation: "合標準＋候選新聞低於 target_total_count、某分類零結果、或偵測到高影響新議題時。"
+  signal_evidence_rule: "signal class 一律 final_evidence=false；高風險主張須回到 A/B/C/D 找可驗證來源。"
+
+integrity:
+  total_sources: 100
+  class_count_sum_check: "各 class count 加總應等於 100"
+  sync_rule: "完整 registry 若增刪來源，本索引的 count 必須同步更新。"
