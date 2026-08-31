@@ -1,6 +1,7 @@
 meta:
   version: "0.6.0-rc1"
   candidate_patch: "poc-calibration-g1-g7-output-2026-08-27"
+  efficiency_patch: "runtime-efficiency-2026-08-31"
   authority: "compact runtime authority"
   purpose: "一次日報執行的日期、目標則數、狀態、輸入輸出與失敗行為。"
 
@@ -11,17 +12,27 @@ run_contract:
   before_human_review: "AWAITING_HUMAN_REVIEW"
   after_human_approval: "APPROVED"
 
+# G0 啟動階段只載必要檔案。完整 source registry 延後載入。
 required_runtime_inputs:
   - current_time
   - runtime.yaml
   - poc_calibration.yaml
   - topic_profile.yaml
-  - source_registry_taiwan.yaml
+  - source_lane_index.yaml
   - decision_policy.yaml
   - workflow.md
   - output_contract.md
   - state/handover.md
   - state/published_history.jsonl
+
+deferred_runtime_inputs:
+  source_registry_taiwan.yaml:
+    load_when: "Search Planner 需要具體來源名稱或 URL 以組 active_source_set 時。"
+    reason: |
+      該檔約 15KB／100 筆來源，但其自身已定 scan_all_each_run: false，
+      單次 run 僅使用一小部分。G0 全載屬固定浪費（BRSCP P1）。
+    substitute_at_g0: "source_lane_index.yaml"
+    fallback: "索引缺失或與完整 registry 不一致時，載入完整 registry 並於 run_manifest 記錄不一致。"
 
 required_outputs_before_review:
   - run_manifest
@@ -47,8 +58,10 @@ scope_setting:
     - date_mode
     - target_total_count
   date_default: TODAY
-  target_total_count_default: null
-  rule: "承辦先決定目標新聞則數。若未設定，外部 PoC 前必須詢問一次，不得由模型默認成固定則數。"
+  target_total_count_default: 8
+  target_source: "poc_calibration.yaml > run_scope.target_total_count"
+  ask_policy: "已校正預設值時不再詢問；承辦當次指定則以當次為準，不改寫校正檔。"
+  rule: "承辦可決定目標新聞則數。預設值已依實測 yield 校正，不得由模型另行臆造固定則數。"
   date_rule: "TODAY 以 Asia/Taipei 當下時間為主範圍。若目標則數不足，依允許的時間階梯補搜，但每則仍需個別驗證原文發布時間。"
 
 user_gate_display:
@@ -72,13 +85,17 @@ time_window:
     - {id: T3, label: 72小時內, hours: 72, status: PROVISIONAL}
   absolute_ceiling_hours: 72
   escalation:
-    - "先完整跑 G1 設定的主要日期範圍與 TW100 source coverage。"
+    - "先完整跑 G1 設定的主要日期範圍與 active source set。"
     - "合標準＋候選新聞低於 target_total_count 時，先在同一主要時間窗擴大來源覆蓋。"
     - "同日來源擴張後仍不足，才補搜 24–48 小時區間並標 T2。"
     - "仍不足時補搜 48–72 小時區間並標 T3。"
     - "T3 仍不足時，G7 標 DEGRADED 並輸出實際則數，不硬湊。"
     - "任何擴展都不得降低 G2、G3、G5、G6，也不得把排除新聞升級。"
     - "每次來源擴張與時間擴展都必須對承辦揭露。"
+  early_stop:
+    enabled: true
+    rule: "任一階層達到 target_total_count 即停止擴展，不繼續往下一階層搜尋。"
+    reason: "避免在已達標後仍慣性跑滿三層階梯，屬單次執行耗時主因之一。"
   monday_rule: {enabled: true, t1_window: "上週五 00:00 至執行當下", monday_ceiling_hours: 120, note: "週一主要範圍已涵蓋週末，後續階梯只補未涵蓋區間。"}
   late_news_rule: {enabled: true, rule: "時間窗終點以執行當下計算，涵蓋清晨發布內容。"}
 
@@ -89,13 +106,19 @@ volume:
   hard_ceiling_status: "PENDING_TEAM_REVIEW"
   selection_priority: [CORE, EXTENDED]
   display_labels: {CORE: 合標準, EXTENDED: 候選新聞}
-  under_target_behavior: "先補同日 TW100 source coverage 與候選新聞，再依 T2/T3 補時間。仍不足就誠實輸出，不硬湊。"
+  under_target_behavior: "先補同日來源覆蓋與候選新聞，再依 T2/T3 補時間。仍不足就誠實輸出，不硬湊。"
   completion_gate: G7
 
 source_coverage:
+  index: "source_lane_index.yaml"
   registry: "source_registry_taiwan.yaml"
+  registry_load: "deferred"
   total_registered_sources: 100
   scan_all_each_run: false
+  hot_start:
+    enabled: true
+    rule: "第一批搜尋直接使用 source_lane_index.yaml > hot_start_sources，不需先載入完整 registry。"
+    reason: "多數 run 的第一批命中集中於少數高覆蓋來源，先跑這批可較快判斷是否已達標。"
   lanes:
     core: {classes: [A_OFFICIAL, A_INSTITUTION, B_PROFESSIONAL, B_RESEARCH], behavior: "依 topic tags 優先覆蓋。"}
     editorial: {classes: [C_MAINSTREAM, C_EDITORIAL, C_BUSINESS, D_BUSINESS, D_PUBLIC_MEDIA, D_CIVIC, D_PEER_GOV], behavior: "輪替補充主流、產業、地方與同業城市。"}
@@ -132,16 +155,21 @@ yield_telemetry:
   enabled: true
   fields: [run_id, execution_time, weekday, target_total_count, qualified_count, candidate_count, source_expansion_incremental, signal_candidates, t1_count, t2_incremental, t3_incremental, final_count, stopped_at_tier, degraded]
   poc_decision: "兩場 internal PoC 與後續實際使用資料用來校正目標則數、時間階梯與分類比例。"
+  observed_runs:
+    - {date: "2026-08-25", run: "KCG-BRIEF-20260825-1430", t1_count: 0, note: "未帶時間錨點的 query 回傳結果集中在 5–13 天前。"}
+    - {date: "2026-08-25", run: "KCG-BRIEF-20260825-2310", t1_count: 0, note: "同上。兩次獨立執行 T1 皆為 0，已列為 recency_anchoring 修正依據。"}
+    - {date: "2026-08-27", run: "KCG-BRIEF-20260827-1317", t1_count: 1, note: "帶錨點後，2 條 P0 query 得 1 則 T1 命中；為 target_total_count=8 之校正依據。"}
 
 failure_policy:
   search_partial_failure: "保留已取得候選，以備援 query 重試一次並記錄失敗 query。"
   source_fetch_failure: "找不到另一個可驗證來源就排除。"
   date_unverified: "排除，不能用 crawl time、搜尋摘要時間或標題日期替代。"
   history_missing: "允許執行，但 G5 標 DEGRADED 並提醒首次執行缺少跨日保護。"
-  insufficient_volume: "先在主要日期範圍啟動 TW100 source expansion 與候選新聞，再依允許時間階梯擴展。不得降低 G2/G3/G5/G6。"
+  insufficient_volume: "先在主要日期範圍擴大來源覆蓋與候選新聞，再依允許時間階梯擴展。不得降低 G2/G3/G5/G6。"
   llm_uncertain_relevance: "若符合候選新聞條件送承辦待審；無法具體說明 actionability 則排除。"
   conflicting_sources: "優先一手來源。核心事實仍衝突時標待查並移出可交付清單。"
   tool_unavailable: "停止受影響階段，列出未完成項目，不宣告完成。"
+  index_registry_mismatch: "source_lane_index 與完整 registry 不一致時，改載完整 registry 並於 run_manifest 記錄。"
 
 query_budget_guard:
   status: "PENDING_RUNTIME_VALIDATION"
@@ -151,12 +179,26 @@ query_budget_guard:
   pre_dispatch_rule: "每次送出搜尋 batch 前先計算 remaining slots。若 proposed batch 超過剩餘數量，先截斷再送工具。"
   accounting_fields: [discovery_search_count, verification_search_count, source_fetch_count, total_search_calls]
   enforcement_boundary: "純模型環境只能執行 pre-dispatch contract guard。若需要 machine-enforced hard cap，部署 wrapper 需在工具 dispatch 層再次拒絕超額呼叫。"
+  known_limitation:
+    id: "BRSCP-P3"
+    severity: HIGH
+    statement: "本上限在純聊天環境中不具機器強制力，僅為模型自律。"
+    implication: "單次 run 的實際搜尋次數可能超過 44，且無任何機制會攔截。"
+    not_fixable_at_contract_layer: true
+    required_to_fix: "工具 dispatch 層 wrapper（外部程式），非 prompt 或契約可解。"
+    honest_note: "在 wrapper 完成前，不得宣稱本 Skill 具備搜尋成本上限保證。"
 
-ledger_persistence:
-  status: "PENDING_RUNTIME_VALIDATION"
-  rule: "每個搜尋 batch 回來後，先把所有 surfaced candidates 寫入 candidate / excluded ledger，再允許下一個搜尋 batch。"
-  required_fields: [batch_id, query, source, source_id, source_class, selection_band, publication_evidence, disposition, plain_reason]
-  advancement_gate: "ledger row coverage 未完成時不得進 Summarize。"
+verification_efficiency:
+  same_event_single_verification:
+    enabled: true
+    rule: "同一 event_key 之多來源候選，只對最終保留的那一則開原文驗證，不逐一開啟。"
+    reason: "G5 去重後只會保留一則，對將被去重掉的來源開原文屬重複成本（BRSCP P6）。"
+    order: "先做 G5 同事件去重 → 再對保留者開原文驗證。"
+  skip_verification_when:
+    - "候選已因 G3 或 G4 明確判定 EXCLUDE，不需再開原文驗日期。"
+  mandatory_verification_retained:
+    - "彙整型容器（日報／週報／月報）標題強制確認原文年份，不因效率規則跳過。"
+    - "任何進入合標準或候選新聞的項目，發布時間必須經原文驗證。"
 
 never_do:
   - "直接發布到 LINE。"
@@ -170,3 +212,6 @@ never_do:
   - "擴時間時放寬 G2/G3/G5/G6 或把排除新聞升級。"
   - "擴時間後隱藏 T1/T2/T3 或不回報擴展。"
   - "把資安日報、週報等彙整容器整篇當成單一新聞。"
+  - "在 G0 階段載入完整 source_registry_taiwan.yaml。"
+  - "已達 target_total_count 後仍繼續擴展時間階層。"
+  - "宣稱本 Skill 具備機器強制的搜尋次數上限。"
